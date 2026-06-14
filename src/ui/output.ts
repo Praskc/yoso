@@ -24,6 +24,7 @@ export class OutputPanel {
   private bufferHoldTimer = 0
   private streamBuf: number[] = []
   private streamSum = 0
+  private _lastStreamTs = 0
 
   constructor() {
     const root = document.getElementById('tab-traductor')
@@ -208,6 +209,10 @@ export class OutputPanel {
     if (this.streamBuf.length > STREAM_MAX) {
       this.streamSum -= this.streamBuf.shift()!
     }
+    // El path SVG se reconstruye a ~22fps; los datos sí se acumulan cada frame.
+    const now = performance.now()
+    if (now - this._lastStreamTs < 45) return
+    this._lastStreamTs = now
     this.renderStream()
   }
 

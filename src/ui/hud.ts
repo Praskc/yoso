@@ -15,6 +15,8 @@ export class HUD {
   private _prevMano   = ''
   private _prevEstado = ''
   private _prevRoi    = ''
+  private _prevLat    = ''
+  private _prevFps    = ''
   private _limpioKey  = ''
 
   constructor() {
@@ -45,7 +47,15 @@ export class HUD {
         this.arcFill.style.strokeDashoffset = String(ARC_CIRCUMFERENCE * (1 - pct / 100))
       }
     }
-    if (this.mTime) this.mTime.innerHTML = `${latencia.toFixed(1)}<span class="unit">ms</span>`
+    // Escribir solo el nodo de texto evita reparsear el <span> cada frame.
+    if (this.mTime) {
+      const lat = latencia.toFixed(1)
+      if (lat !== this._prevLat) {
+        this._prevLat = lat
+        if (this.mTime.firstChild) this.mTime.firstChild.textContent = lat
+        else this.mTime.textContent = lat
+      }
+    }
 
     const mano = esIzquierda ? 'izq.' : 'der.'
     if (this.mHand && mano !== this._prevMano) {
@@ -71,6 +81,7 @@ export class HUD {
     this._prevPct    = -1
     this._prevMano   = ''
     this._prevEstado = ''
+    this._prevLat    = ''
 
     if (this.mHand) {
       this.mHand.textContent = 'ND'
@@ -119,6 +130,10 @@ export class HUD {
   }
 
   actualizarFps(fps: number): void {
-    if (this.mFps) this.mFps.textContent = fps.toFixed(1)
+    if (!this.mFps) return
+    const v = fps.toFixed(1)
+    if (v === this._prevFps) return
+    this._prevFps = v
+    this.mFps.textContent = v
   }
 }
