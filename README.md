@@ -182,7 +182,7 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 ```
 ├── src/
 │   ├── core/
-│   │   ├── app.ts              # Orquestador: pipeline Tasks-Vision, ROI, visibilidad, luminosidad
+│   │   ├── app.ts              # Orquestador: despacha frames al worker, ROI, visibilidad, luminosidad
 │   │   └── main.ts             # Entry point + registro del Service Worker
 │   ├── engine/
 │   │   ├── inference.ts        # Motor IA: preprocesado, softmax, filtros, buffer circular de votos
@@ -191,6 +191,8 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 │   │   └── game.ts             # Motor de gamificación, 300 palabras, 5 niveles, eventos yoso:juego
 │   ├── lib/
 │   │   └── signs.ts            # Diagramas SVG del alfabeto (perspectiva observador)
+│   ├── workers/
+│   │   └── messages.ts         # Tipos del protocolo de mensajes con el worker de MediaPipe
 │   ├── ui/
 │   │   ├── index.ts            # RenderizadorUI: orquesta todos los paneles
 │   │   ├── hud.ts              # HUD de predicción, métricas de mano y estado
@@ -217,7 +219,8 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 │   ├── YOSO.onnx               # Modelo exportado (2.4 MB)
 │   ├── Centroides.json         # Centroides + dist_ref P75 por clase
 │   ├── manifest.json           # PWA manifest
-│   ├── sw.js                   # Service Worker v12, cache-first assets, network-first navegación
+│   ├── mediapipe-worker.js     # Web Worker clásico: corre el hand_landmarker de MediaPipe
+│   ├── sw.js                   # Service Worker v13, cache-first assets, network-first navegación
 │   ├── robots.txt
 │   └── favicon.svg
 ├── ml/
@@ -309,13 +312,15 @@ El `nginx.conf` incluye:
 
 ## Notas técnicas
 
+**MediaPipe en Web Worker**: el detector de manos corre en un Web Worker dedicado. El main thread captura un `ImageBitmap` por frame y lo transfiere zero-copy al worker, que devuelve los landmarks. Libera al main thread de los 11-32ms de `detectForVideo`. El worker es JS clásico (no module) porque MediaPipe necesita `importScripts` para registrar su factory WASM, cosa que se rompe al bundlearlo como módulo ESM. El worker siempre responde (incluso ante error) para no dejar el loop bloqueado esperando un frame.
+
 **Lateralidad MediaPipe Tasks-Vision**: Tasks-Vision 0.10.35 etiqueta la mano derecha física como `'Right'`. El flip de eje X se aplica cuando `handedness.label === 'Left'`.
 
 **M y N**: son las clases con mayor varianza intra-clase por oclusión de dedos superpuestos. Sus dist_ref son 5-6x más altas que el resto.
 
 **SharedArrayBuffer**: ONNX Runtime WASM con `intraOpNumThreads: 2` requiere `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp`. Configurados en `vite.config.ts` (dev/preview) y `docker/nginx.conf` (producción).
 
-**Service Worker**: el modelo (2.4 MB) se precachea en la instalación del SW. Tras la primera carga la app funciona completamente offline. La versión de caché es `yoso-v12`.
+**Service Worker**: el SW precachea todo el runtime de inferencia (modelo ONNX, worker y bundle/wasm de MediaPipe, hand_landmarker.task). El wasm de ORT queda en cache-first runtime porque la variante se elige según el browser. Tras la primera sesión la app funciona offline. La versión de caché es `yoso-v13`.
 
 **Bundle particionado**: Vite produce chunks separados: `ort-*.js` (~402 KB), `mediapipe-*.js` (~132 KB), `index-*.js` (~37 KB). Updates de código de app preservan los caches de ORT y MediaPipe en el SW, reduciendo bytes re-descargados tras un deploy.
 
@@ -342,7 +347,11 @@ Implicancias:
 
 ## Changelog
 
-### v3.1: UI modular y performance frontend (actual)
+### v3.2: MediaPipe en Web Worker (actual)
+
+El detector de manos se movió a un Web Worker dedicado. El main thread captura un `ImageBitmap` por frame y lo transfiere (zero-copy) al worker, que corre `detectForVideo` y devuelve los landmarks por `postMessage`. Esto libera al main thread de los 11-32ms que tarda la detección, manteniendo el canvas y la UI fluidos en sesiones largas. El worker es JS clásico (no module) para que MediaPipe registre su factory WASM vía `importScripts`. El SW (v13) ahora precachea todo el runtime de inferencia (modelo + worker + bundle y wasm de MediaPipe), no solo el modelo. Optimización extra de DOM por frame en HUD (latencia y FPS) y throttle del gráfico de tendencia a ~22fps.
+
+### v3.1: UI modular y performance frontend
 
 CSS refactorizado en módulos (`src/styles/components/`, `modes/`, `overlays/`) con tokens OKLCH. Fuentes self-hosted via Fontsource (Bricolage Grotesque Variable + Geist Variable), eliminando la dependencia de Google Fonts. DOM write guards en HUD y PanelLeft: early-return cuando el valor no cambia (~30fps sin escrituras redundantes). Buffer cells cacheadas y coordenadas X precalculadas en OutputPanel, running sum para el promedio del stream. Eventos `yoso:juego` personalizados reemplazando MutationObserver en GamePanel. Service worker v12 simplificado a cache-first puro sin handlers CDN obsoletos. Licencia MIT.
 
@@ -370,7 +379,6 @@ JavaScript vanilla, hoy solo en el historial de git. Pipeline de 48 features con
 - [ ] GRU unidireccional para 5 letras con movimiento (J, Ñ, S, G, Z)
 
 ### Siguiente fase
-- [ ] Migración de MediaPipe Tasks-Vision a Web Worker con OffscreenCanvas: libera ~7ms/frame del main thread
 - [ ] Cuantización INT8 para deployment en ESP32-S3, TinyML edge
 - [ ] Panel de referencia visual con todas las señas LSC
 - [ ] Coordenada Z de MediaPipe en extracción de features
@@ -382,7 +390,7 @@ Este proyecto nace en **Sincelejo, Sucre, Colombia**. El reconocimiento de lengu
 
 ## Autor
 
-**Esteban Cotera** — Estudiante de Ingeniería Electrónica, Sincelejo, Colombia
+**Esteban Cotera** · Estudiante de Ingeniería Electrónica, Sincelejo, Colombia
 [github.com/Praskc](https://github.com/Praskc)
 
 </div>
