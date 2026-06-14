@@ -98,7 +98,6 @@ def cargar_y_unificar(csv_files: list[str]) -> tuple[np.ndarray, np.ndarray]:
         coords_raw   = df.iloc[:, 1:43].values.astype(np.float32)   # (N, 42)
         labels_raw   = df.iloc[:, 0].values
 
-        # ── Recalibración vectorizada ──────────────────────────────────────
         pts_batch, angles_calc, valid = recalibrar_batch(coords_raw)
 
         if tiene_angulo:
@@ -131,7 +130,6 @@ def cargar_y_unificar(csv_files: list[str]) -> tuple[np.ndarray, np.ndarray]:
     return X, y
 
 
-# ── Centroides P75 ────────────────────────────────────────────────────────
 
 def calcular_centroides(X_tr: np.ndarray, y_tr: np.ndarray) -> dict:
     log('Calculando centroides (P75) sobre train set...')
@@ -175,7 +173,6 @@ def limpiar_outliers_train(
     return X_c, y_c
 
 
-# ── Dataset con augmentation ──────────────────────────────────────────────
 
 class SignDataset(Dataset):
     def __init__(self, X: np.ndarray, y: np.ndarray, augment: bool = False):
@@ -196,7 +193,7 @@ class SignDataset(Dataset):
         coords = x[:42].reshape(21, 2)
         rotated = coords @ np.array([[c, s], [-s, c]], dtype=np.float32)
         x[:42] = rotated.flatten()
-        # Wrap a [-π, π] — coherente con np.arctan2 usado en recalibrar()
+        # Wrap a [-π, π], coherente con np.arctan2 usado en recalibrar().
         x[42] = ((float(x[42]) + a + np.pi) % (2 * np.pi)) - np.pi
 
         sc      = random.uniform(0.88, 1.12)
@@ -214,7 +211,6 @@ class SignDataset(Dataset):
         return torch.from_numpy(x), torch.tensor(self.y[idx])
 
 
-# ── Arquitectura ──────────────────────────────────────────────────────────
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_f: int, out_f: int, dropout: float = 0.3):
@@ -254,7 +250,6 @@ class FCNN(nn.Module):
         return self.net(x)
 
 
-# ── Loops de entrenamiento/evaluación ────────────────────────────────────
 
 def train_epoch(
     loader: DataLoader, model: nn.Module, loss_fn: nn.Module, optimizer: torch.optim.Optimizer
@@ -287,7 +282,6 @@ def eval_epoch(
     return (100.0 * correct / len(loader.dataset), val_loss / len(loader))  # type: ignore[arg-type]
 
 
-# ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
     os.makedirs(os.path.dirname(PTH_PATH) or '.', exist_ok=True)
@@ -373,7 +367,7 @@ def main() -> None:
         log(f'  {epoch:>4}  {tr_loss:>8.4f}  {val_loss:>8.4f}  {acc:>6.2f}%  {lr:>10.6f}  {estado}')
 
         if no_imp >= PATIENCE:
-            log(f'\nEarly stopping — {PATIENCE} épocas sin mejora.')
+            log(f'\nEarly stopping: {PATIENCE} épocas sin mejora.')
             break
 
     log(sep)

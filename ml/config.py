@@ -3,9 +3,7 @@ import os
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-# Rutas a datasets de imágenes. Configurables vía env var YOSO_DATA_ROOTS
-# (separadas por ';' en Windows, ':' en Unix). Si no se define, usa los defaults
-# del autor del proyecto — funciona en su máquina, falla con aviso en otras.
+# Datasets de imágenes; override con la env var YOSO_DATA_ROOTS (paths separados por os.pathsep).
 _DEFAULT_DATA_ROOTS: list[str] = [
     r"C:\Users\esteb\OneDrive\Documentos\Proyectos III\ULT\train\images",
     r"C:\Users\esteb\OneDrive\Documentos\Proyectos III\ULT\ASL_Alphabet_Dataset\asl_alphabet_train",

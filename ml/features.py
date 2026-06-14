@@ -3,20 +3,19 @@ import numpy as np
 from ml.config import PUNTAS
 
 
-# ── Batch (vectorizado) ───────────────────────────────────────────────────
 
 def recalibrar_batch(
     coords: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     
     pts = coords.reshape(-1, 21, 2).astype(np.float32)
-    pts = pts - pts[:, 0:1, :]                                   # traslación
+    pts = pts - pts[:, 0:1, :]
 
     norms = np.linalg.norm(pts[:, 9, :], axis=1)                 # (N,)
-    # Mismo umbral que src/engine/inference.ts — ver nota en recalibrar()
+    # Mismo umbral que src/engine/inference.ts (ver recalibrar()).
     valid = norms > 1e-4
     safe  = np.where(valid, norms, 1.0)
-    pts   = pts / safe[:, np.newaxis, np.newaxis]                # normalización
+    pts   = pts / safe[:, np.newaxis, np.newaxis]
 
     angles = np.arctan2(pts[:, 9, 1], pts[:, 9, 0])             # (N,)
     return pts, angles, valid
@@ -35,9 +34,7 @@ def recalibrar(coords_42: np.ndarray) -> tuple[np.ndarray, float] | None:
     pts = coords_42.reshape(21, 2).astype(np.float32)
     pts -= pts[0]
     dist = np.linalg.norm(pts[9])
-    # Mismo umbral que src/engine/inference.ts (dp <= 1e-4) — preserva la
-    # invariante crítica: el dataset no debe contener muestras que la
-    # inferencia descarte por colapso de la mano.
+    # Mismo umbral que inference.ts (dp <= 1e-4): el dataset no debe tener muestras que la inferencia descarte.
     if dist <= 1e-4:
         return None
     pts /= dist

@@ -79,12 +79,11 @@ def _extraer_clase(ruta_archivo: str, ruta_base: str) -> str | None:
     return None
 
 
-# ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
     sep = '=' * 55
     print(sep)
-    print('YOSO — Extracción de landmarks')
+    print('YOSO · Extracción de landmarks')
     print(f'Workers: {CPU_WORKERS}  |  Salida: {OUTPUT_CSV}')
     print(sep)
 
