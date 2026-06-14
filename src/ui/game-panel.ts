@@ -104,7 +104,6 @@ export class GamePanel {
   private buildConstellation(nivelIdx: number): string {
     let svg = ''
 
-    // Líneas de conexión
     for (let i = 0; i < NX.length - 1; i++) {
       const done = i < nivelIdx
       svg += `<line id="lvl-line-${i}"
@@ -112,7 +111,6 @@ export class GamePanel {
         x1="${NX[i]}" y1="${NY}" x2="${NX[i+1]}" y2="${NY}"/>`
     }
 
-    // Nodos y labels
     for (let i = 0; i < NX.length; i++) {
       const done    = i < nivelIdx
       const current = i === nivelIdx

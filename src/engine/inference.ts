@@ -1,6 +1,3 @@
-// ============================================================================
-// INFERENCE.TS — Motor de inferencia YOSO
-// ============================================================================
 import * as ort from 'onnxruntime-web'
 import type { Punto, Lateralidad, MapaCentroides, OpcionesInicioInferencia, CargaDebug, ItemTop, Centroide } from './types'
 
@@ -11,15 +8,13 @@ export const ALFABETO: string[] = [
 ]
 export const BORRAR = '⌫'
 
-// ── Hiperparámetros ──────────────────────────────────────────────────────────
-const UMBRAL_CONFIANZA       = 0.82   // subido de 0.75 — filtra detecciones en zona gris por luz adversa
-const PESO_GEO_MAX           = 0.20   // penalización geométrica más agresiva
-const TAMANO_BUFFER          = 9      // más frames para consenso
+const UMBRAL_CONFIANZA       = 0.82
+const PESO_GEO_MAX           = 0.20
+const TAMANO_BUFFER          = 9
 const VOTOS_NECESARIOS       = 7      // de 9 frames, 7 deben coincidir
 const TIEMPO_COOLDOWN_MS     = 800
 const COOLDOWN_MISMA_LETRA   = 1800
 const COOLDOWN_COMANDO_MS    = 400
-// Suma mínima de pesos para confirmar — más exigente
 const PESO_MINIMO_VOTOS      = VOTOS_NECESARIOS * UMBRAL_CONFIANZA  // 7 × 0.82 = 5.74
 const PUNTAS                 = [4, 8, 12, 16, 20] as const
 const IDX_DESCARTE           = -1
@@ -32,7 +27,7 @@ export class MotorInferencia {
   private _inputName  = ''
   private _outputName = ''
 
-  // Buffers preasignados — evitan GC por frame
+  // Buffers preasignados, sin GC por frame.
   private readonly bufCoords   = new Float32Array(42)
   private readonly bufFeatures = new Float32Array(48)
   private          bufSoftmax  = new Float32Array(0)   // se dimensiona en primer uso
@@ -43,19 +38,16 @@ export class MotorInferencia {
     { letra: '', prob: 0 }
   ]
 
-  // Tensor + inputFeed reutilizados — bufFeatures es backing, mutar bufFeatures muta el tensor
+  // bufFeatures es el backing del tensor: mutarlo muta el tensor.
   private _tensor:    ort.Tensor | null = null
   private _inputFeed: Record<string, ort.Tensor> = {}
 
-  // Centroides indexados por posición en ALFABETO — evita string ops por frame
   private _centroidesPorIndice: (Centroide | null)[] = []
 
-  // Buffer circular de votos — cero allocs por frame
   private readonly _votosLetras = new Int8Array(TAMANO_BUFFER)   // índice en ALFABETO; -1 = descarte
   private readonly _votosPesos  = new Float32Array(TAMANO_BUFFER)
   private _votosHead   = 0
   private _votosLleno  = false
-  // Acumulador de pesos por letra — indexado por posición en ALFABETO
   private readonly _pesoPorLetra = new Float32Array(ALFABETO.length)
   private ultimaLetra:           string = ''
   private ultimoTiempoEscritura: number = 0
@@ -63,32 +55,26 @@ export class MotorInferencia {
 
   private cb!: OpcionesInicioInferencia['callbacks']
 
-  // ── API pública ──────────────────────────────────────────────────────────────
   public iniciar(opts: OpcionesInicioInferencia): void {
     this.sesion     = opts.sesion as ort.InferenceSession
     this.centroides = opts.centroides
     this.cb         = opts.callbacks
-    // Cacheados — evita lecturas redundantes por frame
     this._inputName  = this.sesion.inputNames[0]
     this._outputName = this.sesion.outputNames[0]
-    // Tensor preasignado — backing = bufFeatures. ORT lee tensor.data en cada run().
     this._tensor = new ort.Tensor('float32', this.bufFeatures, [1, 48])
     this._inputFeed[this._inputName] = this._tensor
-    // Mapeo letra → centroide por índice del alfabeto. ' ' y BORRAR no tienen.
+    // ' ' y BORRAR no tienen centroide.
     this._centroidesPorIndice = ALFABETO.map(letra => {
       if (!this.centroides || letra === ' ' || letra === BORRAR) return null
       return this.centroides[letra.toLowerCase()] ?? null
     })
-    // Buffer de votos vacío
     this._votosLetras.fill(IDX_DESCARTE)
     this._votosPesos.fill(0)
     this._votosHead  = 0
     this._votosLleno = false
   }
 
-  // forzar=false (default): solo limpia buffer — ultimaLetra y ultimoTiempoEscritura
-  // se preservan para que el cooldown sobreviva parpadeos del detector.
-  // forzar=true: reset completo (cambio de modo, tab oculto).
+  // forzar=true resetea todo; si no, preserva el cooldown entre parpadeos del detector.
   public reiniciar(forzar = false): void {
     this._votosLetras.fill(IDX_DESCARTE)
     this._votosPesos.fill(0)
@@ -109,10 +95,9 @@ export class MotorInferencia {
 
       const t0Proc   = performance.now()
       const entrada  = this._preprocesar(puntos, esCamaraIzquierda)
-      if (entrada === null) return  // mano ocluida o dp ≈ 0 — descartar frame
+      if (entrada === null) return  // mano ocluida, descartar frame
 
-      // Tensor + feed reutilizados. _procesando garantiza no-mutation durante run.
-      // bufFeatures (== entrada) ya está poblado por _preprocesar y es el backing del tensor.
+      // entrada == bufFeatures, ya poblado por _preprocesar y backing del tensor.
       void entrada
       const t0Inf         = performance.now()
       const salida        = await this.sesion.run(this._inputFeed)
@@ -132,7 +117,7 @@ export class MotorInferencia {
       let letraDetectada = confianzaEfectiva >= UMBRAL_CONFIANZA ? letra : '-'
       if ((letraDetectada === ' ' || letraDetectada === BORRAR) && jitter > 0.02) letraDetectada = '-'
 
-      // top-3 por partial sort O(n) sin alloc — buffers preasignados
+      // top-3 por partial sort O(n) sin alloc.
       {
         let i0 = 0, i1 = 0, i2 = 0
         let p0 = -Infinity, p1 = -Infinity, p2 = -Infinity
@@ -147,17 +132,15 @@ export class MotorInferencia {
         this._top3Buf[2].letra = ALFABETO[i2]; this._top3Buf[2].prob = p2
       }
 
-      // Índice de la letra detectada en este frame (-1 si descarte)
       const idxDetectada  = letraDetectada === '-' ? IDX_DESCARTE : ALFABETO.indexOf(letraDetectada)
       const pesoDetectado = letraDetectada === '-' ? 0 : confianzaEfectiva
 
-      // Escritura O(1) en buffer circular
       this._votosLetras[this._votosHead] = idxDetectada
       this._votosPesos[this._votosHead]  = pesoDetectado
       this._votosHead = (this._votosHead + 1) % TAMANO_BUFFER
       if (this._votosHead === 0) this._votosLleno = true
 
-      // Cero el acumulador de pesos (28 floats — más rápido que Map.clear())
+      // Cero el acumulador (28 floats, más rápido que Map.clear()).
       this._pesoPorLetra.fill(0)
       let idxCandidato = IDX_DESCARTE, pesoCandidato = 0
       const limite = this._votosLleno ? TAMANO_BUFFER : this._votosHead
@@ -175,8 +158,7 @@ export class MotorInferencia {
 
       this.cb.alDetectarLetra(letraDetectada, confianzaEfectiva, latInferencia, latProcesamiento, esCamaraIzquierda)
 
-      // Proyectar índices → strings sólo para el callback de debug.
-      // Orden cronológico desde head (más antiguo cuando lleno) hasta head-1 (más reciente).
+      // Índices a strings solo para el debug, en orden cronológico desde head.
       for (let i = 0; i < TAMANO_BUFFER; i++) {
         if (!bufferLleno && i >= this._votosHead) { this._bufLetras[i] = ''; continue }
         const slot = bufferLleno ? (this._votosHead + i) % TAMANO_BUFFER : i
@@ -198,7 +180,7 @@ export class MotorInferencia {
 
       const candidato = ALFABETO[idxCandidato]
 
-      // performance.now() es monotónico — Date.now() salta si el reloj del SO cambia
+      // performance.now() es monotónico; Date.now() salta con el reloj del SO.
       const ahora        = performance.now()
       const esComando    = idxCandidato === IDX_ESPACIO || idxCandidato === IDX_BORRAR
       const esMismaLetra = candidato === this.ultimaLetra && !esComando
@@ -224,7 +206,6 @@ export class MotorInferencia {
     }
   }
 
-  // ── Privados ─────────────────────────────────────────────────────────────────
   private _preprocesar(puntos: Punto[], esCamaraIzquierda: boolean): Float32Array | null {
     const baseX = puntos[0].x
     const baseY = puntos[0].y
@@ -237,7 +218,7 @@ export class MotorInferencia {
     }
 
     const dp = Math.sqrt(this.bufCoords[18] ** 2 + this.bufCoords[19] ** 2)
-    if (dp <= 1e-4) return null  // mano ocluida — descartar frame
+    if (dp <= 1e-4) return null  // mano ocluida, descartar frame
 
     const invDp = 1 / dp
     for (let i = 0; i < 42; i++) this.bufCoords[i] *= invDp

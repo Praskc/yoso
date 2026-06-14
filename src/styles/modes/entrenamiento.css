@@ -218,7 +218,7 @@
 }
 .word-card__progress-count .denom { color: var(--ink-sub); }
 
-/* Feedback — game.ts setea className="game-feedback fb-{tipo}" y textContent */
+/* Feedback: game.ts setea className="game-feedback fb-{tipo}" y textContent */
 .game-feedback {
   padding: 14px 20px;
   background: var(--bg-deep);

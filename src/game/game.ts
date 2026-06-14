@@ -153,7 +153,7 @@ export class GameManager {
       const nivel = this.nivelIdx + 1
       this.pool = [...(BANCO[nivel] ?? BANCO[1])].sort(() => Math.random() - 0.5)
       this._emitir({ tipo: 'fuente', fuente: 'local' })
-      this._setFeedback('SIN CONEXIÓN — MODO LOCAL', 'warn')
+      this._setFeedback('SIN CONEXIÓN · MODO LOCAL', 'warn')
       window.setTimeout(() => {
         if (this.activo && !this.bloqueado) this._setFeedback('HAZ LA SEÑA...', 'idle')
       }, 2000)

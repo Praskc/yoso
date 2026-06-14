@@ -5,8 +5,7 @@ const ICON_FRAME = `<svg class="onb-step__icon" width="16" height="16" viewBox="
 const ICON_HAND  = `<svg class="onb-step__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 2v5M8 1v6M11 2v5M3 6v2a5 5 0 0010 0V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 const ICON_CHECK = `<svg class="onb-step__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8l4 4 8-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 
-// Mano seña Y: todos los elementos desplazados +15px en X para que el pulgar
-// no quede recortado por el borde izquierdo del viewBox.
+// Seña Y desplazada +15px en X para que el pulgar no se recorte en el viewBox.
 function buildROI(): string {
   return `<div class="onb-roi" aria-hidden="true">
     <div class="roi-frame">

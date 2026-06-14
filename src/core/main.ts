@@ -1,4 +1,3 @@
-// MAIN.TS — Punto de entrada
 import { YOSOApp } from './app'
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   void app.iniciar()
 })
 
-// Registro del Service Worker para capacidades PWA offline-first
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
