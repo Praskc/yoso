@@ -1,5 +1,5 @@
 /* ============================================================================
-   SPLASH · Pantalla de carga con entrada escalonada
+   SPLASH · Pantalla de carga con spinner cónico, pasos y tips LSC
    ============================================================================ */
 
 #splash-screen {
@@ -9,96 +9,159 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 32px 24px;
   background: var(--bg-deeper);
-  transition: opacity var(--dur-slow) var(--ease-out),
-              transform var(--dur-slow) var(--ease-out);
+  transition: opacity 380ms var(--ease-out), filter 380ms var(--ease-out);
 }
 #splash-screen.is-hidden {
   opacity: 0;
-  transform: scale(1.015);
+  filter: blur(5px);
   pointer-events: none;
 }
 
-.splash-inner {
+.splash-card {
+  width: min(400px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  text-align: center;
 }
 
-/* Status: aparece primero */
-.splash-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.28em;
-  color: var(--ink-sub);
-  text-transform: uppercase;
-  margin-bottom: 36px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 0ms both;
+/* ── Identidad ── */
+.splash-id {
+  text-align: center;
+  margin-bottom: 20px;
+  animation: splash-up 280ms var(--ease-out) 0ms both;
 }
-.splash-status::before {
-  content: '';
-  width: 6px; height: 6px;
+.splash-name {
+  display: block;
+  font-family: var(--font-brand);
+  font-variation-settings: 'opsz' 48, 'wght' 800;
+  font-size: clamp(38px, 10vw, 48px);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--ink);
+}
+.splash-sub {
+  display: block;
+  margin-top: 9px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-sub);
+}
+
+/* ── Bloque de carga ── */
+.splash-loader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid oklch(0.22 0 0);
+  animation: splash-up 280ms var(--ease-out) 50ms both;
+}
+
+.splash-spin {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  animation: pulse 1.6s var(--ease-out) infinite;
+  background:
+    radial-gradient(farthest-side, var(--accent) 94%, #0000) top/5px 5px no-repeat,
+    conic-gradient(#0000 30%, var(--accent));
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 5px), #000 0);
+          mask: radial-gradient(farthest-side, #0000 calc(100% - 5px), #000 0);
+  animation: splash-spin 1s infinite linear;
+}
+.splash-spin[data-error] {
+  background:
+    radial-gradient(farthest-side, var(--danger) 94%, #0000) top/5px 5px no-repeat,
+    conic-gradient(#0000 30%, var(--danger));
+  animation-play-state: paused;
+}
+
+.splash-step {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  color: var(--ink-sub);
+  transition: color 200ms;
+}
+.splash-step[data-error] { color: var(--danger); }
+
+/* ── Tips ── */
+.splash-tip {
+  width: 100%;
+  text-align: center;
+  padding-top: 24px;
+  animation: splash-up 280ms var(--ease-out) 100ms both;
+}
+
+.splash-tip-cat {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  transition: color 200ms;
+}
+.splash-tip-cat[data-error] { color: var(--danger); }
+
+.splash-tip-body {
+  font-family: var(--font-ui);
+  font-size: clamp(14px, 3.8vw, 17px);
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--ink-mid);
+  min-height: 76px;
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out), color 200ms;
+}
+.splash-tip-body.out { opacity: 0; transform: translateY(-4px); }
+.splash-tip-body.in  { opacity: 0; transform: translateY(4px); }
+.splash-tip-body.err { color: var(--danger); min-height: 0; }
+
+.splash-tip-foot {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.splash-tip-n {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--ink-faint);
   flex-shrink: 0;
 }
-.splash-status[data-error="true"] { color: var(--danger); }
-.splash-status[data-error="true"]::before {
-  background: var(--danger);
-  box-shadow: 0 0 8px var(--danger);
-  animation: none;
+.splash-tip-track {
+  flex: 1;
+  height: 1px;
+  background: oklch(0.24 0 0);
+  overflow: hidden;
+}
+.splash-drain {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.35;
+  transform-origin: left;
+  animation: splash-drain 4s linear infinite;
 }
 
-/* Wordmark: el plato fuerte */
-.splash-wordmark {
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 96, 'wght' 800;
-  font-size: clamp(88px, 16vw, 148px);
-  line-height: 0.88;
-  letter-spacing: -0.055em;
-  color: var(--ink);
-  animation: splash-wordmark-in 480ms var(--ease-out) 60ms both;
+/* ── Keyframes ── */
+@keyframes splash-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
-
-/* Slogan */
-.splash-slogan {
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 48, 'wght' 400;
-  font-style: italic;
-  font-size: 17px;
-  color: var(--ink-sub);
-  margin-top: 22px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 160ms both;
-}
-
-/* Meta */
-.splash-meta {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.32em;
-  color: var(--ink-faint);
-  margin-top: 12px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 220ms both;
-}
-
-/* Keyframes */
-@keyframes splash-wordmark-in {
-  from { opacity: 0; transform: translateY(16px) scaleY(0.96); }
-  to   { opacity: 1; transform: translateY(0) scaleY(1); }
-}
+@keyframes splash-spin  { 100% { transform: rotate(1turn); } }
+@keyframes splash-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash-status,
-  .splash-wordmark,
-  .splash-slogan,
-  .splash-meta { animation: none; }
-  #splash-screen { transition: opacity 160ms linear; }
+  .splash-id, .splash-loader, .splash-tip { animation: none; opacity: 1; }
+  .splash-spin  { animation: none; }
+  .splash-drain { animation: none; }
+  .splash-tip-body { transition: opacity 80ms linear; }
+  #splash-screen { transition: opacity 100ms linear; filter: none; }
 }
