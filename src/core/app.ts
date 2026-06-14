@@ -1,6 +1,8 @@
+
 import * as ort                                          from 'onnxruntime-web'
-import { HandLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
-import type { HandLandmarkerResult }                     from '@mediapipe/tasks-vision'
+import { HandLandmarker, DrawingUtils } from '@mediapipe/tasks-vision'
+import type { HandLandmarkerResult }   from '@mediapipe/tasks-vision'
+import type { WorkerOutMsg }           from '../workers/messages'
 import { MotorInferencia, BORRAR }                       from '../engine/inference'
 import { GameManager }                                   from '../game/game'
 import { RenderizadorUI }                                from '../ui'
@@ -30,6 +32,11 @@ export class YOSOApp {
 
   private _pausado = false
   private _iniciandoCamara = false
+
+  private _worker:        Worker | null = null
+  private _workerListo    = false
+  private _workerOcupado  = false
+  private _fpsActual      = 0
 
   private readonly _canvasLuz: HTMLCanvasElement
   private readonly _ctxLuz:    CanvasRenderingContext2D
@@ -134,18 +141,34 @@ export class YOSOApp {
 
       this.ui.ocultarEstadoVacio()
 
-      const vision = await FilesetResolver.forVisionTasks('/mediapipe')
-      const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: '/mediapipe/hand_landmarker.task',
-          delegate: 'GPU'
-        },
-        runningMode: 'VIDEO',
-        numHands: 1,
-        minHandDetectionConfidence: 0.80,
-        minHandPresenceConfidence:  0.70,
-        minTrackingConfidence:      0.70
+      this._worker = new Worker('/mediapipe-worker.js')
+
+      await new Promise<void>((resolve, reject) => {
+        this._worker!.onmessage = (e: MessageEvent<WorkerOutMsg>) => {
+          if (e.data.type === 'ready') { this._workerListo = true; resolve() }
+          if (e.data.type === 'error') reject(new Error(e.data.message))
+        }
+        this._worker!.postMessage({ type: 'init' })
       })
+
+      this._worker.onmessage = (e: MessageEvent<WorkerOutMsg>) => {
+        const { data } = e
+        if (data.type === 'result') {
+          this._workerOcupado = false
+          this._alRecibirResultados(data as unknown as HandLandmarkerResult)
+          this.ui.actualizarPerfFrame(data.mpMs, this._fpsActual)
+        }
+        if (data.type === 'error') {
+          this._workerOcupado = false
+          console.error('[Worker MP]', data.message)
+        }
+      }
+
+      // Libera el flag si el worker crashea fuera del flujo de mensajes.
+      this._worker.onerror = (e) => {
+        this._workerOcupado = false
+        console.error('[Worker MP] onerror', e.message)
+      }
 
       this._drawingUtils = new DrawingUtils(this.ctx)
 
@@ -155,8 +178,7 @@ export class YOSOApp {
 
       let ultimoVideoTime = -1
 
-      // rVFC = callback exacto por frame de video, sin depender del refresh rate del display.
-      // Fallback a rAF en Safari iOS <17.
+      // rVFC: un callback por frame de video sin atarse al refresh del display, con fallback a rAF.
       const usaVFC = typeof (this.video as any).requestVideoFrameCallback === 'function'
       const programar = usaVFC
         ? () => (this.video as any).requestVideoFrameCallback(loop)
@@ -175,16 +197,16 @@ export class YOSOApp {
         this._fpsBuf[this._fpsHead] = ahora
         this._fpsHead = (this._fpsHead + 1) % 60
         if (this._fpsFill < 60) this._fpsFill++
-        const fps = this._fpsFill >= 2
+        this._fpsActual = this._fpsFill >= 2
           ? (this._fpsFill - 1) / ((ahora - oldest) / 1000)
           : 0
 
-        const t0       = performance.now()
-        const resultado = handLandmarker.detectForVideo(this.video, ahora)
-        const mpMs     = performance.now() - t0
-
-        this._alRecibirResultados(resultado)
-        this.ui.actualizarPerfFrame(mpMs, fps)
+        if (this._workerListo && !this._workerOcupado) {
+          this._workerOcupado = true
+          createImageBitmap(this.video).then(bitmap => {
+            this._worker!.postMessage({ type: 'frame', bitmap, timestamp: ahora }, [bitmap])
+          }).catch(() => { this._workerOcupado = false })
+        }
       }
       programar()
     } finally {

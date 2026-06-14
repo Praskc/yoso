@@ -12,12 +12,7 @@ const COOP_HEADERS = {
   'Cross-Origin-Embedder-Policy': 'require-corp',
 }
 
-// Self-hosting: copia los WASM de ORT y MediaPipe a dist/ con paths flat.
-// vite-plugin-static-copy v4 preserva la estructura de directorios del src,
-// lo cual es indeseable para node_modules. Plugin inline para control total.
-// ORT 1.25 elige la variante en runtime según capabilities del browser
-// (basic, jsep para WebGPU, asyncify, jspi). Copiamos todas para que
-// cualquier elección encuentre el archivo. ~76 MB total extra (jsep es ~26 MB).
+// Copia los WASM de ORT y MediaPipe a dist/ con paths flat; ORT trae todas las variantes (~76 MB) porque el browser elige una en runtime.
 const ASSETS_SELF_HOSTED: Array<[string, string]> = [
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs',           'ort/ort-wasm-simd-threaded.mjs'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',          'ort/ort-wasm-simd-threaded.wasm'],
@@ -29,6 +24,7 @@ const ASSETS_SELF_HOSTED: Array<[string, string]> = [
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jspi.wasm',     'ort/ort-wasm-simd-threaded.jspi.wasm'],
   ['node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js',      'mediapipe/vision_wasm_internal.js'],
   ['node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm',    'mediapipe/vision_wasm_internal.wasm'],
+  ['node_modules/@mediapipe/tasks-vision/vision_bundle.cjs',                 'mediapipe/vision_bundle.cjs'],
 ]
 
 const copiaAssetsSelfHosted: Plugin = {
@@ -45,16 +41,13 @@ const copiaAssetsSelfHosted: Plugin = {
   }
 }
 
-// En `pnpm dev` no corre `copiaAssetsSelfHosted` (solo `apply: 'build'`), así que
-// sin esto el browser pide /ort/*.mjs y /mediapipe/* contra el dev server y obtiene
-// 404. Middleware que los lee directo de node_modules y los sirve. Solo en dev.
+// En dev no corre el copiado (apply: 'build'); este middleware sirve /ort/* y /mediapipe/* desde node_modules.
 const sirveAssetsSelfHostedDev: Plugin = {
   name: 'sirve-assets-self-hosted-dev',
   apply: 'serve',
   configureServer(server) {
     const mapa      = new Map(ASSETS_SELF_HOSTED.map(([src, dest]) => ['/' + dest, src]))
-    // Cache en memoria para archivos ya leídos/comprimidos — evita leer y gzip-ear
-    // el mismo archivo de disco repetidamente durante el dev session.
+    // Cache en memoria para no releer ni recomprimir el mismo archivo en cada request.
     const bufCache  = new Map<string, Buffer>()
     const gzipCache = new Map<string, Buffer>()
 
@@ -70,7 +63,7 @@ const sirveAssetsSelfHostedDev: Plugin = {
         const ext = ruta.split('.').pop() ?? ''
         const ct  = ext === 'wasm'
           ? 'application/wasm'
-          : ext === 'mjs' || ext === 'js'
+          : ext === 'mjs' || ext === 'js' || ext === 'cjs'
             ? 'application/javascript'
             : 'application/octet-stream'
         res.setHeader('Content-Type', ct)
@@ -78,8 +71,7 @@ const sirveAssetsSelfHostedDev: Plugin = {
         for (const [k, v] of Object.entries(COOP_HEADERS)) res.setHeader(k, v)
         res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
 
-        // Los .wasm son binario denso, comprimen mal y el browser los maneja crudo.
-        // Comprimir 26 MB en dev bloquea varios segundos — se sirven sin gzip.
+        // Los .wasm comprimen mal y comprimir 26 MB en dev bloquea segundos, se sirven crudos.
         const esWasm    = ext === 'wasm'
         const aceptaGzip = !esWasm && (req.headers['accept-encoding'] ?? '').toString().includes('gzip')
         if (aceptaGzip) {
@@ -98,8 +90,7 @@ const sirveAssetsSelfHostedDev: Plugin = {
   }
 }
 
-// Excluye los .wasm que Rollup bundlea espontáneamente (variantes JSEP/asyncify
-// que no usamos). Solo queremos los WASM copiados explícitamente arriba.
+// Excluye los .wasm que Rollup bundlea solo (variantes que no usamos).
 const excluirWasmRollup: Plugin = {
   name: 'excluir-wasm-rollup',
   generateBundle(_, bundle) {
@@ -110,7 +101,12 @@ const excluirWasmRollup: Plugin = {
 }
 
 export default defineConfig({
-  server:  { port: 5173, headers: COOP_HEADERS, allowedHosts: true },
+  server:  {
+    port: 5173,
+    headers: COOP_HEADERS,
+    allowedHosts: true,
+    sourcemapIgnoreList: (p) => p.includes('node_modules'),
+  },
   preview: { headers: COOP_HEADERS },
   optimizeDeps: {
     exclude: ['onnxruntime-web', '@mediapipe/tasks-vision']
