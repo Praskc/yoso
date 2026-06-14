@@ -27,7 +27,7 @@ YOSO es un sistema completo de reconocimiento del alfabeto dactilológico de la 
 
 El sistema fue desarrollado para reducir las barreras de comunicación de la comunidad sorda colombiana, usando tecnología edge accesible desde cualquier dispositivo con cámara y navegador, sin infraestructura costosa.
 
-> **Estado actual:** El modelo base fue entrenado con datos ASL como prueba de concepto. La migración completa a LSC está en progreso con dataset propio recolectado con la comunidad sorda colombiana en colaboración con intérpretes certificados.
+> **Estado actual:** El modelo del alfabeto está entrenado con datos de ASL, que comparte la mayoría de configuraciones del alfabeto manual con la LSC, así que funciona para buena parte de las letras, pero no es data de LSC. Se está haciendo el intento de llevarlo a LSC con un dataset propio de dactilología, en gestión con fonoaudiología de la Universidad de Sucre.
 
 ## Pipeline completo
 
@@ -374,7 +374,7 @@ JavaScript vanilla, hoy solo en el historial de git. Pipeline de 48 features con
 ## Roadmap
 
 ### En progreso
-- [ ] Recolección dataset LSC, 35 personas, 28 clases, colaboración con intérpretes certificados
+- [ ] Intento de dataset LSC de dactilología, en gestión con fonoaudiología de la Universidad de Sucre
 - [ ] Fine-tuning FCNN para 8 clases estáticas distintas entre ASL y LSC
 - [ ] GRU unidireccional para 5 letras con movimiento (J, Ñ, S, G, Z)
 
@@ -386,7 +386,7 @@ JavaScript vanilla, hoy solo en el historial de git. Pipeline de 48 features con
 
 ## Contexto
 
-Este proyecto nace en **Sincelejo, Sucre, Colombia**. El reconocimiento de lengua de señas es un derecho de comunicación, no un producto, por ende YOSO es y será siempre open source, desarrollado en colaboración con la comunidad sorda colombiana de la Universidad de Sucre.
+Este proyecto nace en **Sincelejo, Sucre, Colombia**. El reconocimiento de lengua de señas es un derecho de comunicación, no un producto, por ende YOSO es y será siempre open source. Se está haciendo el intento de llevarlo a LSC junto a fonoaudiología de la Universidad de Sucre.
 
 ## Autor
 
