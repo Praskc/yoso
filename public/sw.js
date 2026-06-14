@@ -1,10 +1,16 @@
-const CACHE = 'yoso-v12'
+const CACHE = 'yoso-v13'
 
+// ORT wasm no va aquí: la variante se elige en runtime según el browser.
 const PRECACHE = [
   '/',
   '/YOSO.onnx',
   '/Centroides.json',
   '/favicon.svg',
+  '/mediapipe-worker.js',
+  '/mediapipe/hand_landmarker.task',
+  '/mediapipe/vision_bundle.cjs',
+  '/mediapipe/vision_wasm_internal.js',
+  '/mediapipe/vision_wasm_internal.wasm',
 ]
 
 self.addEventListener('install', e => {
@@ -72,7 +78,7 @@ self.addEventListener('fetch', e => {
             .then(c => c ?? new Response(
               '<!doctype html><html lang="es"><meta charset="utf-8">' +
               '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-              '<title>YOSO — Sin conexión</title>' +
+              '<title>YOSO sin conexión</title>' +
               '<style>body{margin:0;display:grid;place-items:center;min-height:100vh;' +
               'background:#0b1220;color:#e2e8f0;font:500 15px/1.5 system-ui,sans-serif;' +
               'text-align:center;padding:24px}h1{margin:0 0 12px;font-size:20px;color:#38BDF8}' +
@@ -86,7 +92,7 @@ self.addEventListener('fetch', e => {
     return
   }
 
-  // Assets Vite van hasheados (inmutables); los no hasheados se invalidan subiendo CACHE.
+  // Assets Vite van hasheados (inmutables), los no hasheados se invalidan subiendo CACHE.
   e.respondWith(
     safeMatch(e.request).then(cached => {
       if (cached) return cached
