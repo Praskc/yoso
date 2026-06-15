@@ -68,7 +68,7 @@ export class DebugPanel {
     setBar('db-bar-dist', dist * 100)
     setText('db-dist', p.distancia != null ? p.distancia.toFixed(2) : '--')
     setText('db-distref', p.distRef != null ? p.distRef.toFixed(2) : '--')
-    const votos = p.bufferActual.length
+    const votos = p.bufferActual.filter(s => s !== '').length
     setText('db-votes', `${votos}/9`)
     setText('db-top3', p.topN.slice(0, 3).map(t => `${t.letra}:${(t.prob * 100).toFixed(0)}`).join(' '))
     const buffer = document.getElementById('db-buffer')

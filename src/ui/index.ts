@@ -69,8 +69,8 @@ export class RenderizadorUI {
 
   actualizarDebug(p: CargaDebug): void {
     this.debug.actualizar(p)
-    // bufferActual.length es constante; el progreso real vive en bufferProgreso.
-    this.output.setBuffer(Math.round(p.bufferProgreso * 9), 9)
+    // bufferActual tiene 9 slots fijos; los vacíos son '', contamos los ocupados.
+    this.output.setBuffer(p.bufferActual.filter(s => s !== '').length, 9)
   }
   actualizarPerfFrame(mpMs: number, fps: number): void {
     this.debug.actualizarPerf(mpMs, fps)
