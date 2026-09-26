@@ -27,6 +27,7 @@ export class YOSOApp {
 
   private _pausado = false
   private _iniciandoCamara = false
+  private _stream: MediaStream | null = null
 
   private _worker:        Worker | null = null
   private _workerListo    = false
@@ -58,6 +59,8 @@ export class YOSOApp {
     this._ctxLuz = this._canvasLuz.getContext('2d', { willReadFrequently: true })!
 
     document.addEventListener('visibilitychange', () => this._alCambiarVisibilidad())
+    // pagehide cubre cierre/recarga/navegación: libera la cámara para que el indicador del SO se apague.
+    window.addEventListener('pagehide', () => this._detenerCamara())
     this._vincularEventos()
   }
 
@@ -92,6 +95,7 @@ export class YOSOApp {
       }
 
       this.ui.ocultarEstadoVacio()
+      this._stream = stream
 
       this._worker = new Worker('/mediapipe-worker.js')
 
@@ -143,9 +147,9 @@ export class YOSOApp {
       let ultimoVideoTime = -1
 
       // rVFC: un callback por frame de video sin atarse al refresh del display, con fallback a rAF.
-      const usaVFC = typeof (this.video as any).requestVideoFrameCallback === 'function'
+      const usaVFC = typeof this.video.requestVideoFrameCallback === 'function'
       const programar = usaVFC
-        ? () => (this.video as any).requestVideoFrameCallback(loop)
+        ? () => this.video.requestVideoFrameCallback(loop)
         : () => requestAnimationFrame(loop)
 
       const loop = () => {
@@ -186,6 +190,12 @@ export class YOSOApp {
       this.ui.estadoListo('idle')
       this.ui.limpiarMano()
     }
+  }
+
+  private _detenerCamara(): void {
+    this._stream?.getTracks().forEach(track => track.stop())
+    this._stream = null
+    this._pausado = true
   }
 
   private _verificarLuminosidad(): void {
