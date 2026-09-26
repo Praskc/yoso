@@ -117,9 +117,8 @@ export class GamePanel {
       const nodeClass = done ? 'lvl-node--done' : current ? 'lvl-node--current' : 'lvl-node--locked'
       const labelClass = done ? 'lvl-label' : current ? 'lvl-label--current' : 'lvl-label--locked'
 
-      if (current) {
-        svg += `<circle id="lvl-glow-${i}" class="lvl-node--current-glow" cx="${NX[i]}" cy="${NY}" r="18"/>`
-      }
+      const display = current ? 'block' : 'none'
+      svg += `<circle id="lvl-glow-${i}" class="lvl-node--current-glow" cx="${NX[i]}" cy="${NY}" r="18" style="display:${display}"/>`
       svg += `<circle id="lvl-node-${i}" class="lvl-node ${nodeClass}" cx="${NX[i]}" cy="${NY}" r="10"/>`
       svg += `<text id="lvl-lbl-${i}" class="lvl-label ${labelClass}" x="${NX[i]}" y="${NY + 26}">${NIVELES_META[i].label.toLowerCase()}</text>`
     }
@@ -155,9 +154,34 @@ export class GamePanel {
   }
 
   private actualizarConstelacion(nivelIdx: number): void {
-    const svg = document.getElementById('levels-svg')
-    if (!svg) return
-    svg.innerHTML = this.buildConstellation(nivelIdx)
+    for (let i = 0; i < NX.length - 1; i++) {
+      const el = document.getElementById(`lvl-line-${i}`)
+      if (el) el.classList.toggle('lvl-line--done', i < nivelIdx)
+    }
+
+    for (let i = 0; i < NX.length; i++) {
+      const done    = i < nivelIdx
+      const current = i === nivelIdx
+
+      const node = document.getElementById(`lvl-node-${i}`)
+      if (node) {
+        node.classList.toggle('lvl-node--done', done)
+        node.classList.toggle('lvl-node--current', current)
+        node.classList.toggle('lvl-node--locked', !done && !current)
+      }
+
+      const lbl = document.getElementById(`lvl-lbl-${i}`)
+      if (lbl) {
+        lbl.classList.toggle('lvl-label', done)
+        lbl.classList.toggle('lvl-label--current', current)
+        lbl.classList.toggle('lvl-label--locked', !done && !current)
+      }
+
+      const glow = document.getElementById(`lvl-glow-${i}`)
+      if (glow) {
+        glow.style.display = current ? 'block' : 'none'
+      }
+    }
 
     const sub = document.getElementById('levels-sub')
     if (sub) sub.textContent = `nivel ${nivelIdx + 1} / 5`
