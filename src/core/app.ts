@@ -1,12 +1,8 @@
-
-import * as ort                                          from 'onnxruntime-web'
-import { HandLandmarker, DrawingUtils } from '@mediapipe/tasks-vision'
-import type { HandLandmarkerResult }   from '@mediapipe/tasks-vision'
 import type { WorkerOutMsg }           from '../workers/messages'
-import { MotorInferencia, BORRAR }                       from '../engine/inference'
+import { BORRAR }                       from '../engine/types'
 import { GameManager }                                   from '../game/game'
 import { RenderizadorUI }                                from '../ui'
-import type { Lateralidad, Punto }                       from '../engine/types'
+import type { Punto }                       from '../engine/types'
 
 const LIMITE_SUPERIOR  = 0.10
 const LIMITE_IZQUIERDO = 0.15
@@ -15,14 +11,13 @@ const LIMITE_DERECHO   = 0.85
 const UMBRAL_LUZ = 40
 
 export class YOSOApp {
-  private readonly motor: MotorInferencia
   private readonly juego: GameManager
   private readonly ui:    RenderizadorUI
 
   private readonly video:  HTMLVideoElement
   private readonly canvas: HTMLCanvasElement
   private readonly ctx:    CanvasRenderingContext2D
-  private _drawingUtils:   DrawingUtils | null = null
+
 
   private modo: 'traductor' | 'entrenamiento' | 'aprendizaje' = 'traductor'
   private anchoCanvas  = 0
@@ -49,7 +44,6 @@ export class YOSOApp {
   private _fpsFill = 0
 
   constructor() {
-    this.motor  = new MotorInferencia()
     // UI primero: crea los IDs que GameManager consulta en su constructor.
     this.ui     = new RenderizadorUI()
     this.juego  = new GameManager()
@@ -68,50 +62,8 @@ export class YOSOApp {
   }
 
   public async iniciar(): Promise<void> {
-    ort.env.wasm.wasmPaths = '/ort/'
-
-    try {
-      this.ui.mensajeSplash('Cargando modelo…')
-
-      // Solo WASM: el modelo es demasiado pequeño para que WebGPU amortice su overhead por frame.
-      const hilos = Math.min(2, navigator.hardwareConcurrency ?? 2)
-      const [sesion, centroidesRaw] = await Promise.all([
-        ort.InferenceSession.create('./YOSO.onnx', {
-          executionProviders:     ['wasm'],
-          graphOptimizationLevel: 'all',
-          enableCpuMemArena:      true,
-          intraOpNumThreads:      hilos
-        }),
-        fetch('./Centroides.json')
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null)
-      ])
-
-      const centroides = centroidesRaw
-        ? Object.fromEntries(
-            Object.entries(centroidesRaw as Record<string, { coords: number[]; dist_ref: number }>)
-              .map(([k, v]) => [k, { coords: new Float32Array(v.coords), dist_ref: v.dist_ref }])
-          )
-        : null
-
-      this.motor.iniciar({
-        sesion,
-        centroides,
-        callbacks: {
-          alConfirmarLetra:  (l)                              => this._alConfirmarLetra(l),
-          alDetectarLetra:   (l, c, lat, _latP, esIzquierda) => this._alDetectarLetra(l, c, lat, esIzquierda),
-          alActualizarDebug: (p)                              => this.ui.actualizarDebug(p)
-        }
-      })
-
-      this.ui.ocultarSplash()
-
-    } catch (err) {
-      this.ui.mensajeSplash('Error al cargar el modelo', true)
-      console.error('[YOSO] Arranque fallido:', err)
-      return
-    }
-
+    this.ui.mensajeSplash('Iniciando sistema...')
+    this.ui.ocultarSplash()
     await this.ui.mostrarOnboarding()
     await this._iniciarCamara()
   }
@@ -123,8 +75,8 @@ export class YOSOApp {
       // pointer:coarse + maxTouchPoints detecta táctiles incluyendo iPadOS 13+, que reporta UA "Macintosh"
       const esMobil = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
       const constraints: MediaStreamConstraints = esMobil
-        ? { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 360 } }, audio: false }
-        : { video: { width: { ideal: 640 }, height: { ideal: 360 } }, audio: false }
+        ? { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 60, min: 30 } }, audio: false }
+        : { video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 60, min: 30 } }, audio: false }
 
       let stream: MediaStream
       try {
@@ -155,8 +107,20 @@ export class YOSOApp {
         const { data } = e
         if (data.type === 'result') {
           this._workerOcupado = false
-          this._alRecibirResultados(data as unknown as HandLandmarkerResult)
-          this.ui.actualizarPerfFrame(data.mpMs, this._fpsActual)
+          this._alRecibirResultados(data)
+          this.ui.actualizarPerfFrame(this._fpsActual)
+        }
+        if (data.type === 'inference_result') {
+          this.ui.actualizarDebug(data.inference.debug)
+          this._alDetectarLetra(
+            data.inference.letraDetectada,
+            data.inference.confianzaEfectiva,
+            data.inference.latInferencia,
+            data.inference.esCamaraIzquierda
+          )
+          if (data.inference.letraConfirmada !== null) {
+            this._alConfirmarLetra(data.inference.letraConfirmada)
+          }
         }
         if (data.type === 'error') {
           this._workerOcupado = false
@@ -170,7 +134,7 @@ export class YOSOApp {
         console.error('[Worker MP] onerror', e.message)
       }
 
-      this._drawingUtils = new DrawingUtils(this.ctx)
+
 
       this.video.srcObject = stream
       await new Promise<void>(resolve => { this.video.onloadedmetadata = () => resolve() })
@@ -188,6 +152,7 @@ export class YOSOApp {
         programar()
         if (this._pausado || this.video.readyState < 2) return
         if (this.video.currentTime === ultimoVideoTime) return
+        ultimoVideoTime = this.video.currentTime
 
         const ahora = performance.now()
 
@@ -217,7 +182,7 @@ export class YOSOApp {
   private _alCambiarVisibilidad(): void {
     this._pausado = document.hidden
     if (document.hidden) {
-      this.motor.reiniciar(true)
+      if (this._workerListo) this._worker!.postMessage({ type: 'reiniciar', forzar: true })
       this.ui.estadoListo('idle')
       this.ui.limpiarMano()
     }
@@ -262,7 +227,7 @@ export class YOSOApp {
           this.modo = pestaña
           this.ui.limpiarTexto()
           this.ui.limpiarSena()
-          this.motor.reiniciar(true)
+          if (this._workerListo) this._worker!.postMessage({ type: 'reiniciar', forzar: true })
           pestaña === 'entrenamiento' ? void this.juego.activar() : this.juego.desactivar()
         }
       })
@@ -282,7 +247,7 @@ export class YOSOApp {
     this.ui.agregarLetra(letra, letra === BORRAR)
   }
 
-  private _alRecibirResultados(resultado: HandLandmarkerResult): void {
+  private _alRecibirResultados(data: Extract<WorkerOutMsg, { type: 'result' }>): void {
     const ancho = this.video.videoWidth
     const alto  = this.video.videoHeight
     if (ancho !== this.anchoCanvas || alto !== this.altoCanvas) {
@@ -295,27 +260,32 @@ export class YOSOApp {
     if (++this._frameCount % 90 === 0) this._verificarLuminosidad()
 
     const ac = this.canvas.width, al = this.canvas.height
-    this.ctx.save()
     this.ctx.clearRect(0, 0, ac, al)
-    this.ctx.translate(ac, 0)
-    this.ctx.scale(-1, 1)
-    this.ctx.drawImage(this.video, 0, 0, ac, al)
 
-    if (resultado.landmarks.length > 0) {
-      const rawLandmarks = resultado.landmarks[0]
-      const puntos        = rawLandmarks as unknown as Punto[]
-      const lateralidad: Lateralidad = {
-        label: resultado.handedness[0][0].categoryName as 'Left' | 'Right',
-        score: resultado.handedness[0][0].score
+    if (data.hasHand) {
+      const puntos = data.landmarks as unknown as Punto[]
+
+      this.ctx.lineWidth = 2
+      this.ctx.strokeStyle = 'rgba(56,189,248,0.80)'
+      this.ctx.fillStyle = '#38BDF8'
+      
+      const conns = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]]
+      
+      this.ctx.beginPath()
+      for (let i = 0; i < conns.length; i++) {
+        const p1 = puntos[conns[i][0]]
+        const p2 = puntos[conns[i][1]]
+        this.ctx.moveTo((1 - p1.x) * ac, p1.y * al)
+        this.ctx.lineTo((1 - p2.x) * ac, p2.y * al)
       }
+      this.ctx.stroke()
 
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-      const displayLandmarks = rawLandmarks.map(lm => ({ x: 1 - lm.x, y: lm.y, z: lm.z, visibility: lm.visibility }))
-      this._drawingUtils!.drawConnectors(displayLandmarks, HandLandmarker.HAND_CONNECTIONS,
-        { color: 'rgba(56,189,248,0.80)', lineWidth: 2 })
-      this._drawingUtils!.drawLandmarks(displayLandmarks,
-        { color: '#38BDF8', lineWidth: 0.5, radius: 3 })
+      for (let i = 0; i < puntos.length; i++) {
+        const p = puntos[i]
+        this.ctx.beginPath()
+        this.ctx.arc((1 - p.x) * ac, p.y * al, 3, 0, 2 * Math.PI)
+        this.ctx.fill()
+      }
 
       let minX = 1, minY = 1, maxX = 0
       for (const pt of puntos) {
@@ -330,8 +300,7 @@ export class YOSOApp {
       if (fueraZona) {
         this.ui.estadoListo('warning')
         this.ui.limpiarMano()
-        this.motor.reiniciar()
-        this.ctx.restore()
+        this._worker!.postMessage({ type: 'reiniciar', forzar: false })
         return
       }
 
@@ -344,16 +313,11 @@ export class YOSOApp {
 
       this.ui.estadoMano(jitter > 0.03 ? 'Inestable' : 'Óptimo', jitter <= 0.03)
 
-      void this.motor.procesar(puntos, lateralidad, jitter)
-
     } else {
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
       this.ui.estadoListo('idle')
       this.ui.limpiarROI()
       this.ui.limpiarMano()
-      this.motor.reiniciar()
+      // Worker will auto-reset when landmarks.length === 0, so no need to postMessage
     }
-
-    this.ctx.restore()
   }
 }

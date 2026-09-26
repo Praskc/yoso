@@ -1,5 +1,5 @@
 import { signURI }  from '../lib/signs'
-import { BORRAR }   from '../engine/inference'
+import { BORRAR }   from '../engine/types'
 
 const NIVELES = [
   { nivel: 1, minLen: 3, maxLen: 4, req: 3,  label: 'NOVATO'   },
@@ -74,6 +74,10 @@ export class GameManager {
   private pool:         string[] = []
   private racha:        number   = 0
 
+  // Prefetch cache: almacena pools descargados por nivel
+  private static _prefetchCache: Map<number, string[]> = new Map()
+  private static _prefetchDone = false
+
   private _emitir(detail: Record<string, unknown>): void {
     window.dispatchEvent(new CustomEvent('yoso:juego', { detail }))
   }
@@ -86,6 +90,21 @@ export class GameManager {
     this.elProgreso    = document.getElementById('progreso-texto')!
     this.elProgresoBar = document.getElementById('progreso-bar')!
     this.elImagenPista = document.getElementById('imagen-pista') as HTMLImageElement
+
+    // Prefetch pasivo: cargar palabras de todos los niveles en idle
+    if (!GameManager._prefetchDone) {
+      GameManager._prefetchDone = true
+      const doFetch = () => {
+        for (let idx = 0; idx < NIVELES.length; idx++) {
+          this._prefetchNivel(idx)
+        }
+      }
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(doFetch, { timeout: 5000 })
+      } else {
+        setTimeout(doFetch, 3000)
+      }
+    }
   }
 
   public async activar(): Promise<void> {
@@ -114,7 +133,53 @@ export class GameManager {
       : this._letraIncorrecta(letra)
   }
 
+  private async _prefetchNivel(nivelIdx: number): Promise<void> {
+    if (GameManager._prefetchCache.has(nivelIdx)) return
+    const { minLen, maxLen } = NIVELES[nivelIdx]
+    try {
+      const ctrl = new AbortController()
+      const timer = window.setTimeout(() => ctrl.abort(), 3000)
+      const longitudes: number[] = []
+      for (let n = minLen; n <= maxLen; n++) longitudes.push(n)
+
+      const respuestas = await Promise.all(longitudes.map(n =>
+        fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=200`, { signal: ctrl.signal })
+          .then(r => r.ok ? r.json() as Promise<{ word: string }[]> : [])
+          .catch(() => [] as { word: string }[])
+      ))
+      window.clearTimeout(timer)
+
+      const filtradas = respuestas.flat()
+        .map(d => d.word.toUpperCase())
+        .filter(w =>
+          w.length >= minLen &&
+          w.length <= maxLen &&
+          /^[A-Z]+$/.test(w) &&
+          !/TH|CK|WH|GH/.test(w)
+        )
+
+      for (let i = filtradas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filtradas[i], filtradas[j]] = [filtradas[j], filtradas[i]]
+      }
+
+      if (filtradas.length >= 5) {
+        GameManager._prefetchCache.set(nivelIdx, filtradas)
+      }
+    } catch {
+      // Silencioso: el prefetch es oportunista
+    }
+  }
+
   private async _cargarPool(): Promise<void> {
+    // Intentar usar cache prefetch primero
+    const cached = GameManager._prefetchCache.get(this.nivelIdx)
+    if (cached && cached.length >= 5) {
+      this.pool = [...cached].sort(() => Math.random() - 0.5)
+      this._emitir({ tipo: 'fuente', fuente: 'datamuse' })
+      return
+    }
+
     const { minLen, maxLen } = NIVELES[this.nivelIdx]
     try {
       const ctrl = new AbortController()
@@ -176,6 +241,14 @@ export class GameManager {
     this.errores = 0
     this._emitir({ tipo: 'intentos', errores: 0 })
     this._emitir({ tipo: 'nivel', nivelIdx: this.nivelIdx })
+    
+    this.elObjetivo.textContent = ''
+    for (const ch of this.palabraActual) {
+      const span = document.createElement('span')
+      span.textContent = ch
+      this.elObjetivo.appendChild(span)
+    }
+
     this._renderPalabra()
     this._renderProgreso()
     this._setFeedback('HAZ LA SEÑA...', 'idle')
@@ -250,16 +323,14 @@ export class GameManager {
   }
 
   private _renderPalabra(): void {
-    // XSS: createElement en vez de innerHTML (palabraActual puede venir de API externa)
-    this.elObjetivo.textContent = ''
-    this.palabraActual.split('').forEach((ch, i) => {
-      const span = document.createElement('span')
-      span.textContent = ch
-      span.className   = i < this.letraIdx   ? 'gw-done'
-                       : i === this.letraIdx ? 'gw-current'
-                       :                       'gw-pending'
-      this.elObjetivo.appendChild(span)
-    })
+    const children = this.elObjetivo.children
+    for (let i = 0; i < this.palabraActual.length; i++) {
+      if (children[i]) {
+        children[i].className = i < this.letraIdx ? 'gw-done'
+                              : i === this.letraIdx ? 'gw-current'
+                              : 'gw-pending'
+      }
+    }
     if (this.letraIdx < this.palabraActual.length) {
       this.elImagenPista.src = signURI(this.palabraActual[this.letraIdx])
     }
