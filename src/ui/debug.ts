@@ -29,6 +29,8 @@ export class DebugPanel {
     this.visible = !this.visible
   }
 
+  private refs: Record<string, HTMLElement> = {}
+
   private ensureRoot(): void {
     if (this.root) return
     this.root = document.createElement('div')
@@ -42,23 +44,24 @@ export class DebugPanel {
         <div class="dr"><span class="dl">Dist ref</span><div class="dbw"><div class="db" style="width:50%"></div></div><span id="db-distref" class="dv">--</span></div>
         <div class="dr"><span class="dl">Buffer</span><div id="db-buffer" class="debug-buffer"></div><span id="db-votes" class="dv">--</span></div>
         <div class="dr"><span class="dl">Top-3</span><span id="db-top3" class="debug-top3">--</span></div>
-        <div class="dr"><span class="dl">RAM heap</span><div class="dbw"><div id="db-bar-mem" class="db"></div></div><span id="db-mem" class="dv">-- MB</span></div>
-        <div class="dr"><span class="dl">MP frame</span><div class="dbw"><div id="db-bar-mp" class="db"></div></div><span id="db-mp" class="dv">-- ms</span></div>
-        <div class="dr"><span class="dl">FPS real</span><span id="db-fps" class="dv">--</span></div>
       </div>
     `
     document.body.appendChild(this.root)
+
+    const ids = ['db-bar-red', 'db-red', 'db-bar-eff', 'db-eff', 'db-bar-dist', 'db-dist', 'db-distref', 'db-buffer', 'db-votes', 'db-top3']
+    for (const id of ids) {
+      this.refs[id] = document.getElementById(id)!
+    }
+    this.refs['db-buffer'].innerHTML = Array.from({ length: 9 }, () => `<span></span>`).join('')
   }
 
   actualizar(p: CargaDebug): void {
     if (!this.visible || !this.root) return
     const setBar = (id: string, pct: number): void => {
-      const el = document.getElementById(id)
-      if (el) (el as HTMLElement).style.width = `${Math.min(100, Math.max(0, pct))}%`
+      if (this.refs[id]) this.refs[id].style.width = `${Math.min(100, Math.max(0, pct))}%`
     }
     const setText = (id: string, txt: string): void => {
-      const el = document.getElementById(id)
-      if (el) el.textContent = txt
+      if (this.refs[id]) this.refs[id].textContent = txt
     }
     setBar('db-bar-red', p.probRed * 100)
     setText('db-red', `${(p.probRed * 100).toFixed(1)}%`)
@@ -71,29 +74,16 @@ export class DebugPanel {
     const votos = p.bufferActual.filter(s => s !== '').length
     setText('db-votes', `${votos}/9`)
     setText('db-top3', p.topN.slice(0, 3).map(t => `${t.letra}:${(t.prob * 100).toFixed(0)}`).join(' '))
-    const buffer = document.getElementById('db-buffer')
+    const buffer = this.refs['db-buffer']
     if (buffer) {
-      buffer.innerHTML = Array.from({ length: 9 }, (_, i) =>
-        `<span data-active="${i < votos}"></span>`,
-      ).join('')
+      const children = buffer.children
+      for (let i = 0; i < 9; i++) {
+        const active = i < votos ? 'true' : 'false'
+        if (children[i].getAttribute('data-active') !== active) {
+          children[i].setAttribute('data-active', active)
+        }
+      }
     }
-  }
-
-  actualizarPerf(mpMs: number, fps: number): void {
-    if (!this.visible) return
-    const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
-    if (mem) {
-      const mb = mem.usedJSHeapSize / 1024 / 1024
-      const el = document.getElementById('db-bar-mem')
-      if (el) (el as HTMLElement).style.width = `${Math.min(100, mb / 2)}%`
-      const txt = document.getElementById('db-mem')
-      if (txt) txt.textContent = `${mb.toFixed(0)} MB`
-    }
-    const mpEl = document.getElementById('db-bar-mp')
-    if (mpEl) (mpEl as HTMLElement).style.width = `${Math.min(100, mpMs * 6)}%`
-    const mpTxt = document.getElementById('db-mp')
-    if (mpTxt) mpTxt.textContent = `${mpMs.toFixed(1)} ms`
-    const fpsTxt = document.getElementById('db-fps')
-    if (fpsTxt) fpsTxt.textContent = fps.toFixed(1)
   }
 }
+

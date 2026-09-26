@@ -2,20 +2,22 @@ const STREAM_W   = 300
 const STREAM_H   = 130
 const STREAM_MAX = 150  // ~5s a 30fps
 
-// Coordenadas X precalculadas: solo dependen del índice, no del valor.
-const STREAM_XS: string[] = Array.from(
+// Coordenadas X precalculadas como números (ya no strings para SVG).
+const STREAM_XS: number[] = Array.from(
   { length: STREAM_MAX },
-  (_, i) => ((i / (STREAM_MAX - 1)) * STREAM_W).toFixed(1)
+  (_, i) => (i / (STREAM_MAX - 1)) * STREAM_W
 )
+
+// Y del umbral de confianza (82%) precalculado
+const STREAM_THRESHOLD_Y = STREAM_H * (1 - 0.82)
 
 export class OutputPanel {
   private letterEl:    HTMLElement | null = null
   private textEl:      HTMLElement | null = null
   private bufferCells: HTMLElement[] = []
   private bufferCount: HTMLElement | null = null
-  private streamLine:  SVGPathElement | null = null
-  private streamArea:  SVGPathElement | null = null
-  private streamDot:   SVGCircleElement | null = null
+  private streamCanvas: HTMLCanvasElement | null = null
+  private streamCtx:    CanvasRenderingContext2D | null = null
   private streamAvg:   HTMLElement | null = null
   private letras: string[] = []
   private letraActual = '·'
@@ -34,9 +36,12 @@ export class OutputPanel {
     this.textEl      = document.getElementById('final-text')
     this.bufferCells = Array.from(root.querySelectorAll<HTMLElement>('.buffer-block__cell'))
     this.bufferCount = root.querySelector('.buffer-block__count')
-    this.streamLine  = document.getElementById('stream-line') as SVGPathElement | null
-    this.streamArea  = document.getElementById('stream-area') as SVGPathElement | null
-    this.streamDot   = document.getElementById('stream-dot')  as SVGCircleElement | null
+    this.streamCanvas = document.getElementById('stream-canvas') as HTMLCanvasElement | null
+    if (this.streamCanvas) {
+      this.streamCanvas.width  = STREAM_W
+      this.streamCanvas.height = STREAM_H
+      this.streamCtx = this.streamCanvas.getContext('2d')
+    }
     this.streamAvg   = document.getElementById('stream-avg')
 
     document.getElementById('btn-clear')?.addEventListener('click', () => this.limpiarTexto())
@@ -105,22 +110,7 @@ export class OutputPanel {
             <span>0</span>
           </div>
           <div class="stream__chart">
-            <svg viewBox="0 0 ${STREAM_W} ${STREAM_H}" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="streamGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="oklch(0.74 0.14 195)" stop-opacity="0.45"/>
-                  <stop offset="100%" stop-color="oklch(0.74 0.14 195)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <line class="stream__grid" x1="0" y1="0"            x2="${STREAM_W}" y2="0"/>
-              <line class="stream__grid" x1="0" y1="${STREAM_H/2}" x2="${STREAM_W}" y2="${STREAM_H/2}"/>
-              <line class="stream__grid" x1="0" y1="${STREAM_H}"   x2="${STREAM_W}" y2="${STREAM_H}"/>
-              <line class="stream__threshold-line" x1="0" y1="23.4" x2="${STREAM_W}" y2="23.4"/>
-              <text class="stream__threshold-label" x="${STREAM_W - 4}" y="19" text-anchor="end">umbral 82</text>
-              <path class="stream__area" id="stream-area" d=""/>
-              <path class="stream__line" id="stream-line" d=""/>
-              <circle class="stream__dot" id="stream-dot" cx="${STREAM_W}" cy="${STREAM_H}" r="3"/>
-            </svg>
+            <canvas id="stream-canvas" class="stream__canvas"></canvas>
           </div>
         </div>
         <div class="stream__x-axis">
@@ -209,7 +199,6 @@ export class OutputPanel {
     if (this.streamBuf.length > STREAM_MAX) {
       this.streamSum -= this.streamBuf.shift()!
     }
-    // El path SVG se reconstruye a ~22fps; los datos sí se acumulan cada frame.
     const now = performance.now()
     if (now - this._lastStreamTs < 45) return
     this._lastStreamTs = now
@@ -217,24 +206,77 @@ export class OutputPanel {
   }
 
   private renderStream(): void {
+    const ctx = this.streamCtx
     const buf = this.streamBuf
     const n = buf.length
-    if (n < 2 || !this.streamLine || !this.streamArea || !this.streamDot) return
+    if (n < 2 || !ctx) return
 
-    let d = 'M'
+    ctx.clearRect(0, 0, STREAM_W, STREAM_H)
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, 0);            ctx.lineTo(STREAM_W, 0)
+    ctx.moveTo(0, STREAM_H / 2); ctx.lineTo(STREAM_W, STREAM_H / 2)
+    ctx.moveTo(0, STREAM_H);     ctx.lineTo(STREAM_W, STREAM_H)
+    ctx.stroke()
+
+    // Threshold line (dashed)
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+    ctx.setLineDash([4, 4])
+    ctx.beginPath()
+    ctx.moveTo(0, STREAM_THRESHOLD_Y)
+    ctx.lineTo(STREAM_W, STREAM_THRESHOLD_Y)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Threshold label
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.font = '500 8.5px monospace'
+    ctx.textAlign = 'right'
+    ctx.fillText('umbral 82', STREAM_W - 4, STREAM_THRESHOLD_Y - 4)
+
+    // Build line path
+    ctx.beginPath()
     for (let i = 0; i < n; i++) {
-      if (i > 0) d += 'L'
-      d += STREAM_XS[i] + ',' + (STREAM_H * (1 - buf[i])).toFixed(1)
+      const x = STREAM_XS[i]
+      const y = STREAM_H * (1 - buf[i])
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
     }
 
+    // Area fill (gradient under line)
     const xLast = STREAM_XS[n - 1]
-    const yLast = (STREAM_H * (1 - buf[n - 1])).toFixed(1)
+    ctx.lineTo(xLast, STREAM_H)
+    ctx.lineTo(STREAM_XS[0], STREAM_H)
+    ctx.closePath()
+    const grad = ctx.createLinearGradient(0, 0, 0, STREAM_H)
+    grad.addColorStop(0, 'rgba(56,189,248,0.35)')
+    grad.addColorStop(1, 'rgba(56,189,248,0)')
+    ctx.fillStyle = grad
+    ctx.fill()
 
-    this.streamLine.setAttribute('d', d)
-    this.streamArea.setAttribute('d', `${d}L${xLast},${STREAM_H}L0,${STREAM_H}Z`)
-    this.streamDot.setAttribute('cx', xLast)
-    this.streamDot.setAttribute('cy', yLast)
+    // Line stroke
+    ctx.beginPath()
+    for (let i = 0; i < n; i++) {
+      const x = STREAM_XS[i]
+      const y = STREAM_H * (1 - buf[i])
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    }
+    ctx.strokeStyle = '#38BDF8'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
 
+    // Dot at last point
+    const yLast = STREAM_H * (1 - buf[n - 1])
+    ctx.beginPath()
+    ctx.arc(xLast, yLast, 3, 0, 2 * Math.PI)
+    ctx.fillStyle = '#38BDF8'
+    ctx.fill()
+
+    // Avg text
     if (this.streamAvg) {
       this.streamAvg.innerHTML = `avg ${Math.round((this.streamSum / n) * 100)}<span class="unit">%</span>`
     }

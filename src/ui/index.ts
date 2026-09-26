@@ -70,10 +70,11 @@ export class RenderizadorUI {
   actualizarDebug(p: CargaDebug): void {
     this.debug.actualizar(p)
     // bufferActual tiene 9 slots fijos; los vacíos son '', contamos los ocupados.
-    this.output.setBuffer(p.bufferActual.filter(s => s !== '').length, 9)
+    let count = 0
+    for (let i = 0; i < p.bufferActual.length; i++) if (p.bufferActual[i] !== '') count++
+    this.output.setBuffer(count, 9)
   }
-  actualizarPerfFrame(mpMs: number, fps: number): void {
-    this.debug.actualizarPerf(mpMs, fps)
+  actualizarPerfFrame(fps: number): void {
     this.hud.actualizarFps(fps)
   }
 
