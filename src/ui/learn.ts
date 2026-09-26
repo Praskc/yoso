@@ -1,6 +1,10 @@
-const ALFABETO: string[] = [
-  'A','B','C','D','E','F','G','H','I','J','K','L','M','N',
-  'Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+import { ALFABETO } from '../engine/types'
+
+// Panel de aprendizaje: A–Z + Ñ (la Ñ existe en LSC aunque el modelo no la prediga).
+const LETRAS: string[] = [
+  ...ALFABETO.slice(0, 14),  // A..N
+  'Ñ',
+  ...ALFABETO.slice(14, 26), // O..Z
 ]
 
 export class AlphabetLearn {
@@ -16,9 +20,9 @@ export class AlphabetLearn {
     const panel = document.getElementById('tab-aprendizaje')
     if (!panel) return
     panel.innerHTML = `
-      <p class="alphabet-header">Alfabeto LSC · 28 letras</p>
+      <p class="alphabet-header">Alfabeto LSC · ${LETRAS.length} letras</p>
       <div class="alphabet-grid" id="alphabet-grid" role="list">
-        ${ALFABETO.map(l => `
+        ${LETRAS.map(l => `
           <span class="alphabet-cell" data-letter="${l}" role="listitem" aria-label="Letra ${l}">
             ${l.toLowerCase()}
           </span>
