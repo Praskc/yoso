@@ -95,13 +95,8 @@
   padding: 4px 0;
 }
 .stream__chart { position: relative; width: 100%; height: 130px; }
-.stream__chart svg { width: 100%; height: 100%; display: block; }
-.stream__grid { stroke: var(--bg-base); stroke-width: 1; }
-.stream__threshold-line { stroke: var(--ink-sub); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }
-.stream__threshold-label { font-family: var(--font-mono); font-size: 8.5px; fill: var(--ink-sub); letter-spacing: 0.18em; text-transform: uppercase; }
-.stream__area { fill: url(#streamGrad); opacity: 0.4; }
-.stream__line { fill: none; stroke: var(--accent); stroke-width: 1.5; filter: drop-shadow(0 0 3px var(--accent)); }
-.stream__dot { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
+.stream__canvas { width: 100%; height: 100%; display: block; }
+
 
 .stream__x-axis {
   display: grid;

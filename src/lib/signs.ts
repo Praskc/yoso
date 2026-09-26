@@ -217,7 +217,10 @@ export const SIGNS: Record<string, string> = {
   ),
 }
 
+const SIGN_URIS: Record<string, string> = Object.fromEntries(
+  Object.entries(SIGNS).map(([k, v]) => [k, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(v)}`])
+)
+
 export const signURI = (letter: string): string => {
-  const s = SIGNS[letter]
-  return s ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}` : ''
+  return SIGN_URIS[letter] ?? ''
 }

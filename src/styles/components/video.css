@@ -10,7 +10,15 @@
   overflow: hidden;
 }
 
-.input_video,
+.input_video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
 .output_canvas {
   position: absolute;
   inset: 0;
@@ -28,9 +36,7 @@
   align-items: center;
   gap: 8px;
   padding: 7px 13px 7px 11px;
-  background: oklch(0.11 0 0 / 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: oklch(0.11 0 0 / 0.85);
   border-radius: 999px;
   font-family: var(--font-mono);
   font-size: 10.5px;
