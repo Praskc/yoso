@@ -1,4 +1,4 @@
-const CACHE = 'yoso-v13'
+const CACHE = 'yoso-v14'
 
 // ORT wasm no va aquí: la variante se elige en runtime según el browser.
 const PRECACHE = [
@@ -12,6 +12,10 @@ const PRECACHE = [
   '/mediapipe/vision_wasm_internal.js',
   '/mediapipe/vision_wasm_internal.wasm',
 ]
+
+// Assets que usan stale-while-revalidate: servir de caché inmediatamente
+// pero re-descargar en background para la próxima visita.
+const SWR_ASSETS = new Set(['/YOSO.onnx', '/Centroides.json'])
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -92,6 +96,22 @@ self.addEventListener('fetch', e => {
     return
   }
 
+  // Stale-while-revalidate para modelo y centroides:
+  // sirve de caché al instante, pero revalida en background.
+  if (SWR_ASSETS.has(url.pathname)) {
+    e.respondWith(
+      safeMatch(e.request).then(cached => {
+        const fetchPromise = fetch(e.request).then(res => {
+          if (res.ok) guardarEnCache(e.request, res)
+          return res
+        }).catch(() => cached ?? new Response('', { status: 503 }))
+
+        return cached ?? fetchPromise
+      })
+    )
+    return
+  }
+
   // Assets Vite van hasheados (inmutables), los no hasheados se invalidan subiendo CACHE.
   e.respondWith(
     safeMatch(e.request).then(cached => {
@@ -103,3 +123,4 @@ self.addEventListener('fetch', e => {
     })
   )
 })
+
