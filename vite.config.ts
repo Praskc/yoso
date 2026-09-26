@@ -22,6 +22,7 @@ const ASSETS_SELF_HOSTED: Array<[string, string]> = [
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm', 'ort/ort-wasm-simd-threaded.asyncify.wasm'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jspi.mjs',      'ort/ort-wasm-simd-threaded.jspi.mjs'],
   ['node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jspi.wasm',     'ort/ort-wasm-simd-threaded.jspi.wasm'],
+  ['node_modules/onnxruntime-web/dist/ort.wasm.min.js',                      'ort/ort.wasm.min.js'],
   ['node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js',      'mediapipe/vision_wasm_internal.js'],
   ['node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm',    'mediapipe/vision_wasm_internal.wasm'],
   ['node_modules/@mediapipe/tasks-vision/vision_bundle.cjs',                 'mediapipe/vision_bundle.cjs'],
