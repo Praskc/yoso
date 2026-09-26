@@ -128,41 +128,51 @@ export class GameManager {
   public onLetraConfirmada(letra: string): void {
     if (!this.activo || this.bloqueado) return
     if (letra === ' ' || letra === BORRAR) return
-    letra === this.palabraActual[this.letraIdx]
-      ? this._letraCorrecta()
-      : this._letraIncorrecta(letra)
+    if (letra === this.palabraActual[this.letraIdx]) {
+      this._letraCorrecta()
+    } else {
+      this._letraIncorrecta(letra)
+    }
+  }
+
+  // Descarga y filtra palabras del rango de longitudes del nivel desde Datamuse.
+  private async _descargarPalabras(nivelIdx: number): Promise<string[]> {
+    const { minLen, maxLen } = NIVELES[nivelIdx]
+    const ctrl = new AbortController()
+    const timer = window.setTimeout(() => ctrl.abort(), 3000)
+    const longitudes: number[] = []
+    for (let n = minLen; n <= maxLen; n++) longitudes.push(n)
+
+    // datamuse sp= solo acepta longitud exacta, pedimos una por cada valor del rango
+    const respuestas = await Promise.all(longitudes.map(n =>
+      fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=200`, { signal: ctrl.signal })
+        .then(r => r.ok ? r.json() as Promise<{ word: string }[]> : [])
+        .catch(() => [] as { word: string }[])
+    ))
+    window.clearTimeout(timer)
+
+    return respuestas.flat()
+      .map(d => d.word.toUpperCase())
+      .filter(w =>
+        w.length >= minLen &&
+        w.length <= maxLen &&
+        /^[A-Z]+$/.test(w) &&
+        !/TH|CK|WH|GH/.test(w)   // patrones exclusivos del inglés
+      )
+  }
+
+  private _barajar<T>(lista: T[]): T[] {
+    for (let i = lista.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [lista[i], lista[j]] = [lista[j], lista[i]]
+    }
+    return lista
   }
 
   private async _prefetchNivel(nivelIdx: number): Promise<void> {
     if (GameManager._prefetchCache.has(nivelIdx)) return
-    const { minLen, maxLen } = NIVELES[nivelIdx]
     try {
-      const ctrl = new AbortController()
-      const timer = window.setTimeout(() => ctrl.abort(), 3000)
-      const longitudes: number[] = []
-      for (let n = minLen; n <= maxLen; n++) longitudes.push(n)
-
-      const respuestas = await Promise.all(longitudes.map(n =>
-        fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=200`, { signal: ctrl.signal })
-          .then(r => r.ok ? r.json() as Promise<{ word: string }[]> : [])
-          .catch(() => [] as { word: string }[])
-      ))
-      window.clearTimeout(timer)
-
-      const filtradas = respuestas.flat()
-        .map(d => d.word.toUpperCase())
-        .filter(w =>
-          w.length >= minLen &&
-          w.length <= maxLen &&
-          /^[A-Z]+$/.test(w) &&
-          !/TH|CK|WH|GH/.test(w)
-        )
-
-      for (let i = filtradas.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [filtradas[i], filtradas[j]] = [filtradas[j], filtradas[i]]
-      }
-
+      const filtradas = await this._descargarPalabras(nivelIdx)
       if (filtradas.length >= 5) {
         GameManager._prefetchCache.set(nivelIdx, filtradas)
       }
@@ -175,48 +185,22 @@ export class GameManager {
     // Intentar usar cache prefetch primero
     const cached = GameManager._prefetchCache.get(this.nivelIdx)
     if (cached && cached.length >= 5) {
-      this.pool = [...cached].sort(() => Math.random() - 0.5)
+      this.pool = this._barajar([...cached])
       this._emitir({ tipo: 'fuente', fuente: 'datamuse' })
       return
     }
 
-    const { minLen, maxLen } = NIVELES[this.nivelIdx]
     try {
-      const ctrl = new AbortController()
-      const timer = window.setTimeout(() => ctrl.abort(), 3000)
-      const longitudes: number[] = []
-      for (let n = minLen; n <= maxLen; n++) longitudes.push(n)
-
-      // datamuse sp= solo acepta longitud exacta, pedimos una por cada valor del rango
-      const respuestas = await Promise.all(longitudes.map(n =>
-        fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=200`, { signal: ctrl.signal })
-          .then(r => r.ok ? r.json() as Promise<{ word: string }[]> : [])
-          .catch(() => [] as { word: string }[])
-      ))
-      window.clearTimeout(timer)
-
-      const filtradas = respuestas.flat()
-        .map(d => d.word.toUpperCase())
-        .filter(w =>
-          w.length >= minLen &&
-          w.length <= maxLen &&
-          /^[A-Z]+$/.test(w) &&
-          !/TH|CK|WH|GH/.test(w)   // patrones exclusivos del inglés
-        )
-
-      for (let i = filtradas.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [filtradas[i], filtradas[j]] = [filtradas[j], filtradas[i]]
-      }
-
+      const filtradas = await this._descargarPalabras(this.nivelIdx)
       if (filtradas.length < 5) throw new Error('Pool insuficiente')
-      this.pool = filtradas
+      GameManager._prefetchCache.set(this.nivelIdx, filtradas)
+      this.pool = this._barajar(filtradas)
       this._emitir({ tipo: 'fuente', fuente: 'datamuse' })
 
     } catch (err) {
       console.warn('[GameManager] Datamuse falló, usando banco local:', err)
       const nivel = this.nivelIdx + 1
-      this.pool = [...(BANCO[nivel] ?? BANCO[1])].sort(() => Math.random() - 0.5)
+      this.pool = this._barajar([...(BANCO[nivel] ?? BANCO[1])])
       this._emitir({ tipo: 'fuente', fuente: 'local' })
       this._setFeedback('SIN CONEXIÓN · MODO LOCAL', 'warn')
       window.setTimeout(() => {
