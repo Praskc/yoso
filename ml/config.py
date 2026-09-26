@@ -4,14 +4,17 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # Datasets de imágenes; override con la env var YOSO_DATA_ROOTS (paths separados por os.pathsep).
+# Busca por defecto en 'data/raw' local, o en la carpeta ~/datasets/ del usuario.
 _DEFAULT_DATA_ROOTS: list[str] = [
-    r"C:\Users\esteb\OneDrive\Documentos\Proyectos III\ULT\train\images",
-    r"C:\Users\esteb\OneDrive\Documentos\Proyectos III\ULT\ASL_Alphabet_Dataset\asl_alphabet_train",
+    os.path.join(_ROOT, 'data', 'raw'),
+    os.path.expanduser('~/datasets/train/images'),
+    os.path.expanduser('~/datasets/ASL_Alphabet_Dataset/asl_alphabet_train'),
 ]
+
 _env_roots = os.environ.get('YOSO_DATA_ROOTS', '').strip()
 DATA_ROOTS: list[str] = (
     [p for p in _env_roots.split(os.pathsep) if p]
-    if _env_roots else _DEFAULT_DATA_ROOTS
+    if _env_roots else [p for p in _DEFAULT_DATA_ROOTS if os.path.exists(p)]
 )
 OUTPUT_CSV  = os.path.join(_ROOT, 'lsc_master.csv')
 CPU_WORKERS = max(1, (os.cpu_count() or 4) - 1)

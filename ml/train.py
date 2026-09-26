@@ -174,42 +174,45 @@ def limpiar_outliers_train(
 
 
 
-class SignDataset(Dataset):
-    def __init__(self, X: np.ndarray, y: np.ndarray, augment: bool = False):
-        self.X       = X.astype(np.float32)
-        self.y       = y.astype(np.int64)
-        self.augment = augment
+def batch_augment(Xb: torch.Tensor) -> torch.Tensor:
+    B = Xb.size(0)
+    # Máscara para aplicar augmentación solo al 45% del batch
+    mask = (torch.rand(B, device=Xb.device) < 0.45).unsqueeze(1)
+    
+    if not mask.any():
+        return Xb
+        
+    X_aug = Xb.clone()
+    
+    # 1. Ruido gaussiano a las primeras 42 coordenadas
+    noise = torch.randn(B, 42, device=Xb.device) * 0.008
+    X_aug[:, :42] += noise
+    
+    # 2. Rotaciones matriciales en batch
+    angles = torch.empty(B, device=Xb.device).uniform_(-20, 20) * (np.pi / 180.0)
+    c, s = torch.cos(angles), torch.sin(angles)
+    
+    R = torch.stack([
+        torch.stack([c, s], dim=1),
+        torch.stack([-s, c], dim=1)
+    ], dim=2)
+    
+    coords = X_aug[:, :42].view(B, 21, 2)
+    rotated = torch.bmm(coords, R)
+    X_aug[:, :42] = rotated.view(B, 42)
+    X_aug[:, 42] = ((X_aug[:, 42] + angles + np.pi) % (2 * np.pi)) - np.pi
+    
+    # 3. Escalado uniforme
+    sc = torch.empty(B, 1, device=Xb.device).uniform_(0.88, 1.12)
+    X_aug *= sc
+    
+    # 4. Ruido extra en los primeros 10 features (65% de probabilidad)
+    mask_extra = torch.rand(B, 1, device=Xb.device) > 0.65
+    noise_extra = torch.randn(B, 10, device=Xb.device) * 0.018
+    X_aug[:, :10] += noise_extra * mask_extra
 
-    def __len__(self) -> int:
-        return len(self.y)
-
-    @staticmethod
-    def _aug(x: np.ndarray) -> np.ndarray:
-        x = x.copy()
-        x[:42] += np.random.normal(0, 0.008, 42).astype(np.float32)
-
-        a = np.radians(random.uniform(-20, 20))
-        c, s = np.cos(a), np.sin(a)
-        coords = x[:42].reshape(21, 2)
-        rotated = coords @ np.array([[c, s], [-s, c]], dtype=np.float32)
-        x[:42] = rotated.flatten()
-        # Wrap a [-π, π], coherente con np.arctan2 usado en recalibrar().
-        x[42] = ((float(x[42]) + a + np.pi) % (2 * np.pi)) - np.pi
-
-        sc      = random.uniform(0.88, 1.12)
-        x[:42] *= sc
-        x[43:] *= sc
-
-        if random.random() > 0.65:
-            x[:10] += np.random.normal(0, 0.018, 10).astype(np.float32)
-        return x
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        x = self.X[idx]
-        if self.augment and random.random() > 0.45:
-            x = self._aug(x)
-        return torch.from_numpy(x), torch.tensor(self.y[idx])
-
+    # Retornar los aumentados solo para los que pasaron la máscara inicial
+    return torch.where(mask, X_aug, Xb)
 
 
 class ResidualBlock(nn.Module):
@@ -231,14 +234,14 @@ class ResidualBlock(nn.Module):
 class FCNN(nn.Module):
     def __init__(self):
         super().__init__()
+        # Arquitectura esbelta de inferencia rápida (<100K params)
         self.net = nn.Sequential(
-            nn.Linear(N_FEATURES, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(N_FEATURES, 128),
+            nn.BatchNorm1d(128),
             nn.LeakyReLU(0.01, inplace=True),
-            ResidualBlock(512, 512, dropout=0.35),
-            ResidualBlock(512, 256, dropout=0.30),
-            ResidualBlock(256, 128, dropout=0.20),
-            nn.Linear(128, N_CLASES),
+            ResidualBlock(128, 128, dropout=0.30),
+            ResidualBlock(128, 64, dropout=0.20),
+            nn.Linear(64, N_CLASES),
         )
         for m in self.modules():
             if isinstance(m, nn.Linear):
@@ -250,37 +253,50 @@ class FCNN(nn.Module):
         return self.net(x)
 
 
-
 def train_epoch(
-    loader: DataLoader, model: nn.Module, loss_fn: nn.Module, optimizer: torch.optim.Optimizer
+    X_tr: torch.Tensor, y_tr: torch.Tensor, model: nn.Module, loss_fn: nn.Module, optimizer: torch.optim.Optimizer
 ) -> float:
     model.train()
     total = 0.0
-    for Xb, yb in loader:
-        Xb, yb = Xb.to(device), yb.to(device)
-        optimizer.zero_grad(set_to_none=True)          # más rápido que zero_grad()
+    indices = torch.randperm(X_tr.size(0), device=device)
+    num_batches = 0
+    
+    for start_idx in range(0, X_tr.size(0), BATCH_SIZE):
+        batch_idx = indices[start_idx : start_idx + BATCH_SIZE]
+        # Vectorized Augmentation on GPU
+        Xb = batch_augment(X_tr[batch_idx])
+        yb = y_tr[batch_idx]
+        
+        optimizer.zero_grad(set_to_none=True)
         loss = loss_fn(model(Xb), yb)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
+        
         total += loss.item()
-    return total / len(loader)
+        num_batches += 1
+        
+    return total / num_batches
 
 
 def eval_epoch(
-    loader: DataLoader, model: nn.Module, loss_fn: nn.Module
+    X_te: torch.Tensor, y_te: torch.Tensor, model: nn.Module, loss_fn: nn.Module
 ) -> tuple[float, float]:
-    """Devuelve (accuracy %, val_loss)."""
     model.eval()
     correct, val_loss = 0, 0.0
+    num_batches = 0
+    
     with torch.no_grad():
-        for Xb, yb in loader:
-            Xb, yb    = Xb.to(device), yb.to(device)
+        for start_idx in range(0, X_te.size(0), BATCH_SIZE):
+            Xb = X_te[start_idx : start_idx + BATCH_SIZE]
+            yb = y_te[start_idx : start_idx + BATCH_SIZE]
+            
             logits    = model(Xb)
             val_loss += loss_fn(logits, yb).item()
             correct  += (logits.argmax(1) == yb).sum().item()
-    return (100.0 * correct / len(loader.dataset), val_loss / len(loader))  # type: ignore[arg-type]
-
+            num_batches += 1
+            
+    return (100.0 * correct / X_te.size(0), val_loss / num_batches)
 
 
 def main() -> None:
@@ -311,22 +327,17 @@ def main() -> None:
         json.dump(centroides, f, indent=2, ensure_ascii=False)
     log(f'{CENTROIDS_PATH} guardado.')
 
+    # Precargar todos los datos directamente en la GPU (elimina cuellos de PCIe)
+    X_tr_t = torch.tensor(X_tr, dtype=torch.float32, device=device)
+    y_tr_t = torch.tensor(y_tr, dtype=torch.long, device=device)
+    X_te_t = torch.tensor(X_te, dtype=torch.float32, device=device)
+    y_te_t = torch.tensor(y_te, dtype=torch.long, device=device)
+
     counts        = np.bincount(y_tr, minlength=N_CLASES).astype(np.float32)
     counts        = np.where(counts == 0, 1.0, counts)
     class_weights = torch.tensor(
         len(y_tr) / (N_CLASES * counts), dtype=torch.float32
     ).to(device)
-
-    nw  = 4 if device == 'cuda' else 0
-    pin = device == 'cuda'
-    train_loader = DataLoader(
-        SignDataset(X_tr, y_tr, augment=True),
-        batch_size=BATCH_SIZE, shuffle=True, num_workers=nw, pin_memory=pin,
-    )
-    test_loader = DataLoader(
-        SignDataset(X_te, y_te, augment=False),
-        batch_size=BATCH_SIZE, shuffle=False, num_workers=nw, pin_memory=pin,
-    )
 
     model     = FCNN().to(device)
     loss_fn   = nn.CrossEntropyLoss(weight=class_weights)
@@ -335,9 +346,8 @@ def main() -> None:
         optimizer, T_0=10, T_mult=1, eta_min=1e-5
     )
 
-    # torch.compile acelera ~20-30% en PyTorch ≥2.0 con GPU
     try:
-        model = torch.compile(model)  # type: ignore[assignment]
+        model = torch.compile(model)
         log('torch.compile activado.')
     except Exception:
         pass
@@ -350,8 +360,8 @@ def main() -> None:
     log(sep)
 
     for epoch in range(1, MAX_EPOCHS + 1):
-        tr_loss       = train_epoch(train_loader, model, loss_fn, optimizer)
-        acc, val_loss = eval_epoch(test_loader, model, loss_fn)
+        tr_loss       = train_epoch(X_tr_t, y_tr_t, model, loss_fn, optimizer)
+        acc, val_loss = eval_epoch(X_te_t, y_te_t, model, loss_fn)
         scheduler.step()
         lr = optimizer.param_groups[0]['lr']
 
@@ -374,7 +384,7 @@ def main() -> None:
     log(f'Mejor accuracy: {best_acc:.2f}%')
 
     log('Exportando a ONNX...')
-    state = torch.load(PTH_PATH, weights_only=True)
+    state = torch.load(PTH_PATH, map_location=device, weights_only=True)
    
     if any(k.startswith('_orig_mod.') for k in state):
         state = {k.replace('_orig_mod.', ''): v for k, v in state.items()}
