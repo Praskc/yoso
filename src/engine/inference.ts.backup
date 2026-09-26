@@ -1,0 +1,289 @@
+import * as ort from 'onnxruntime-web'
+import type { Punto, Lateralidad, MapaCentroides, OpcionesInicioInferencia, CargaDebug, ItemTop, Centroide } from './types'
+
+export const ALFABETO: string[] = [
+  'A','B','C','D','E','F','G','H','I','J','K','L','M',
+  'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+  ' ', '⌫'
+]
+export const BORRAR = '⌫'
+
+const UMBRAL_CONFIANZA       = 0.82
+const PESO_GEO_MAX           = 0.20
+const TAMANO_BUFFER          = 9
+const VOTOS_NECESARIOS       = 7      // de 9 frames, 7 deben coincidir
+const TIEMPO_COOLDOWN_MS     = 800
+const COOLDOWN_MISMA_LETRA   = 1800
+const COOLDOWN_COMANDO_MS    = 400
+const PESO_MINIMO_VOTOS      = VOTOS_NECESARIOS * UMBRAL_CONFIANZA  // 7 × 0.82 = 5.74
+const PUNTAS                 = [4, 8, 12, 16, 20] as const
+const IDX_DESCARTE           = -1
+const IDX_ESPACIO            = ALFABETO.indexOf(' ')
+const IDX_BORRAR             = ALFABETO.indexOf(BORRAR)
+
+export class MotorInferencia {
+  private sesion:     ort.InferenceSession | null = null
+  private centroides: MapaCentroides | null = null
+  private _inputName  = ''
+  private _outputName = ''
+
+  // Buffers preasignados, sin GC por frame.
+  private readonly bufCoords   = new Float32Array(42)
+  private readonly bufFeatures = new Float32Array(48)
+  private          bufSoftmax  = new Float32Array(0)   // se dimensiona en primer uso
+  private readonly _bufLetras: string[] = Array.from({ length: TAMANO_BUFFER }, () => '')
+  private readonly _top3Buf: ItemTop[]  = [
+    { letra: '', prob: 0 },
+    { letra: '', prob: 0 },
+    { letra: '', prob: 0 }
+  ]
+
+  // bufFeatures es el backing del tensor: mutarlo muta el tensor.
+  private _tensor:    ort.Tensor | null = null
+  private _inputFeed: Record<string, ort.Tensor> = {}
+
+  private _centroidesPorIndice: (Centroide | null)[] = []
+
+  private readonly _votosLetras = new Int8Array(TAMANO_BUFFER)   // índice en ALFABETO; -1 = descarte
+  private readonly _votosPesos  = new Float32Array(TAMANO_BUFFER)
+  private _votosHead   = 0
+  private _votosLleno  = false
+  private readonly _pesoPorLetra = new Float32Array(ALFABETO.length)
+  private ultimaLetra:           string = ''
+  private ultimoTiempoEscritura: number = 0
+  private _procesando = false
+
+  private cb!: OpcionesInicioInferencia['callbacks']
+
+  public iniciar(opts: OpcionesInicioInferencia): void {
+    this.sesion     = opts.sesion as ort.InferenceSession
+    this.centroides = opts.centroides
+    this.cb         = opts.callbacks
+    this._inputName  = this.sesion.inputNames[0]
+    this._outputName = this.sesion.outputNames[0]
+    this._tensor = new ort.Tensor('float32', this.bufFeatures, [1, 48])
+    this._inputFeed[this._inputName] = this._tensor
+    // ' ' y BORRAR no tienen centroide.
+    this._centroidesPorIndice = ALFABETO.map(letra => {
+      if (!this.centroides || letra === ' ' || letra === BORRAR) return null
+      return this.centroides[letra.toLowerCase()] ?? null
+    })
+    this._votosLetras.fill(IDX_DESCARTE)
+    this._votosPesos.fill(0)
+    this._votosHead  = 0
+    this._votosLleno = false
+  }
+
+  // forzar=true resetea todo; si no, preserva el cooldown entre parpadeos del detector.
+  public reiniciar(forzar = false): void {
+    this._votosLetras.fill(IDX_DESCARTE)
+    this._votosPesos.fill(0)
+    this._votosHead   = 0
+    this._votosLleno  = false
+    this._procesando  = false
+    if (forzar) {
+      this.ultimaLetra           = ''
+      this.ultimoTiempoEscritura = 0
+    }
+  }
+
+  public async procesar(puntos: Punto[], lateralidad: Lateralidad, jitter: number): Promise<void> {
+    if (!this.sesion || this._procesando) return
+    this._procesando = true
+    try {
+      const esCamaraIzquierda = lateralidad.label === 'Left'
+
+      const t0Proc   = performance.now()
+      const entrada  = this._preprocesar(puntos, esCamaraIzquierda)
+      if (entrada === null) return  // mano ocluida, descartar frame
+
+      // entrada == bufFeatures, ya poblado por _preprocesar y backing del tensor.
+      void entrada
+      const t0Inf         = performance.now()
+      const salida        = await this.sesion.run(this._inputFeed)
+      const latInferencia = performance.now() - t0Inf
+
+      const datos = salida[this._outputName].data as Float32Array
+      const { probs, indicePico, probPico } = this._softmax(datos)
+
+      let letra = ALFABETO[indicePico]
+      letra = this._juezUR(letra, puntos, esCamaraIzquierda)
+      // Re-derivar índice tras el ajuste U/R (puede haber alternado entre 'U' y 'R')
+      const indiceLetraFinal = ALFABETO.indexOf(letra)
+
+      const { confianzaEfectiva, distancia, distRef } = this._filtroZonaGris(indiceLetraFinal, entrada, probPico)
+      const latProcesamiento = performance.now() - t0Proc
+
+      let letraDetectada = confianzaEfectiva >= UMBRAL_CONFIANZA ? letra : '-'
+      if ((letraDetectada === ' ' || letraDetectada === BORRAR) && jitter > 0.02) letraDetectada = '-'
+
+      // top-3 por partial sort O(n) sin alloc.
+      {
+        let i0 = 0, i1 = 0, i2 = 0
+        let p0 = -Infinity, p1 = -Infinity, p2 = -Infinity
+        for (let i = 0; i < probs.length; i++) {
+          const p = probs[i]
+          if      (p > p0) { p2 = p1; i2 = i1; p1 = p0; i1 = i0; p0 = p; i0 = i }
+          else if (p > p1) { p2 = p1; i2 = i1; p1 = p; i1 = i }
+          else if (p > p2) { p2 = p; i2 = i }
+        }
+        this._top3Buf[0].letra = ALFABETO[i0]; this._top3Buf[0].prob = p0
+        this._top3Buf[1].letra = ALFABETO[i1]; this._top3Buf[1].prob = p1
+        this._top3Buf[2].letra = ALFABETO[i2]; this._top3Buf[2].prob = p2
+      }
+
+      const idxDetectada  = letraDetectada === '-' ? IDX_DESCARTE : ALFABETO.indexOf(letraDetectada)
+      const pesoDetectado = letraDetectada === '-' ? 0 : confianzaEfectiva
+
+      this._votosLetras[this._votosHead] = idxDetectada
+      this._votosPesos[this._votosHead]  = pesoDetectado
+      this._votosHead = (this._votosHead + 1) % TAMANO_BUFFER
+      if (this._votosHead === 0) this._votosLleno = true
+
+      // Cero el acumulador (28 floats, más rápido que Map.clear()).
+      this._pesoPorLetra.fill(0)
+      let idxCandidato = IDX_DESCARTE, pesoCandidato = 0
+      const limite = this._votosLleno ? TAMANO_BUFFER : this._votosHead
+      for (let k = 0; k < limite; k++) {
+        const idxL = this._votosLetras[k]
+        if (idxL === IDX_DESCARTE) continue
+        const acumulado = this._pesoPorLetra[idxL] + this._votosPesos[k]
+        this._pesoPorLetra[idxL] = acumulado
+        if (acumulado > pesoCandidato) { pesoCandidato = acumulado; idxCandidato = idxL }
+      }
+      const bufferLleno    = this._votosLleno
+      const bufferProgreso = bufferLleno
+        ? Math.min(pesoCandidato / PESO_MINIMO_VOTOS, 1.0)
+        : 0
+
+      this.cb.alDetectarLetra(letraDetectada, confianzaEfectiva, latInferencia, latProcesamiento, esCamaraIzquierda)
+
+      // Índices a strings solo para el debug, en orden cronológico desde head.
+      for (let i = 0; i < TAMANO_BUFFER; i++) {
+        if (!bufferLleno && i >= this._votosHead) { this._bufLetras[i] = ''; continue }
+        const slot = bufferLleno ? (this._votosHead + i) % TAMANO_BUFFER : i
+        const idxL = this._votosLetras[slot]
+        this._bufLetras[i] = idxL === IDX_DESCARTE ? '-' : ALFABETO[idxL]
+      }
+
+      this.cb.alActualizarDebug({
+        probRed: probPico, confEfectiva: confianzaEfectiva,
+        distancia, distRef,
+        bufferActual: this._bufLetras,
+        topN:         this._top3Buf,
+        bufferProgreso
+      } satisfies CargaDebug)
+
+      if (!bufferLleno) return
+      if (pesoCandidato < PESO_MINIMO_VOTOS) return
+      if (idxCandidato === IDX_DESCARTE) { this.ultimaLetra = ''; return }
+
+      const candidato = ALFABETO[idxCandidato]
+
+      // performance.now() es monotónico; Date.now() salta con el reloj del SO.
+      const ahora        = performance.now()
+      const esComando    = idxCandidato === IDX_ESPACIO || idxCandidato === IDX_BORRAR
+      const esMismaLetra = candidato === this.ultimaLetra && !esComando
+      const cooldown     = esComando    ? COOLDOWN_COMANDO_MS
+                         : esMismaLetra ? COOLDOWN_MISMA_LETRA
+                         : TIEMPO_COOLDOWN_MS
+
+      if (ahora - this.ultimoTiempoEscritura < cooldown) return
+
+      this.ultimaLetra           = candidato
+      this.ultimoTiempoEscritura = ahora
+      this._votosLetras.fill(IDX_DESCARTE)
+      this._votosPesos.fill(0)
+      this._votosHead  = 0
+      this._votosLleno = false
+
+      this.cb.alConfirmarLetra(candidato)
+
+    } catch (err) {
+      console.error('[MotorInferencia] Error:', err)
+    } finally {
+      this._procesando = false
+    }
+  }
+
+  private _preprocesar(puntos: Punto[], esCamaraIzquierda: boolean): Float32Array | null {
+    const baseX = puntos[0].x
+    const baseY = puntos[0].y
+
+    for (let i = 0; i < 21; i++) {
+      let dx = puntos[i].x - baseX
+      if (esCamaraIzquierda) dx *= -1
+      this.bufCoords[i * 2]     = dx
+      this.bufCoords[i * 2 + 1] = puntos[i].y - baseY
+    }
+
+    const dp = Math.sqrt(this.bufCoords[18] ** 2 + this.bufCoords[19] ** 2)
+    if (dp <= 1e-4) return null  // mano ocluida, descartar frame
+
+    const invDp = 1 / dp
+    for (let i = 0; i < 42; i++) this.bufCoords[i] *= invDp
+
+    this.bufFeatures.set(this.bufCoords)
+    this.bufFeatures[42] = Math.atan2(this.bufCoords[19], this.bufCoords[18])
+    for (let k = 0; k < 5; k++) {
+      const p  = PUNTAS[k]
+      const dx = this.bufCoords[p * 2]
+      const dy = this.bufCoords[p * 2 + 1]
+      this.bufFeatures[43 + k] = Math.sqrt(dx * dx + dy * dy)
+    }
+
+    return this.bufFeatures
+  }
+
+  private _softmax(logits: Float32Array): { probs: Float32Array; indicePico: number; probPico: number } {
+    if (this.bufSoftmax.length !== logits.length) {
+      this.bufSoftmax = new Float32Array(logits.length)
+    }
+    let maxLogit = -Infinity, indicePico = 0
+    for (let i = 0; i < logits.length; i++) {
+      if (logits[i] > maxLogit) { maxLogit = logits[i]; indicePico = i }
+    }
+    let sumaExp = 0
+    for (let i = 0; i < logits.length; i++) {
+      this.bufSoftmax[i] = Math.exp(logits[i] - maxLogit)
+      sumaExp += this.bufSoftmax[i]
+    }
+    let probPico = 0
+    for (let i = 0; i < this.bufSoftmax.length; i++) {
+      this.bufSoftmax[i] /= sumaExp
+      if (this.bufSoftmax[i] > probPico) probPico = this.bufSoftmax[i]
+    }
+    return { probs: this.bufSoftmax, indicePico, probPico }
+  }
+
+  private _juezUR(letra: string, puntos: Punto[], esCamaraIzquierda: boolean): string {
+    if (letra !== 'U' && letra !== 'R') return letra
+    const cruzados = esCamaraIzquierda
+      ? puntos[8].x > puntos[12].x
+      : puntos[8].x < puntos[12].x
+    return cruzados ? 'R' : 'U'
+  }
+
+  private _filtroZonaGris(
+    indiceLetra: number,
+    entrada: Float32Array,
+    probRed: number
+  ): { confianzaEfectiva: number; distancia: number | null; distRef: number | null } {
+    const centroide = this._centroidesPorIndice[indiceLetra]
+    if (!centroide) return { confianzaEfectiva: probRed, distancia: null, distRef: null }
+
+    let suma = 0
+    for (let i = 0; i < centroide.coords.length; i++) {
+      const d = entrada[i] - centroide.coords[i]
+      suma += d * d
+    }
+    const distancia = Math.sqrt(suma)
+    const distRef   = centroide.dist_ref
+
+    if (probRed >= UMBRAL_CONFIANZA) return { confianzaEfectiva: probRed, distancia, distRef }
+
+    const penalizacion      = Math.min(Math.max(0, distancia - distRef) / distRef, 1.0) * PESO_GEO_MAX
+    const confianzaEfectiva = probRed * (1 - penalizacion)
+    return { confianzaEfectiva, distancia, distRef }
+  }
+}
