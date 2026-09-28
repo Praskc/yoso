@@ -239,7 +239,6 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 ├── package.json                # pnpm@11, override protobufjs ≥7.5.8 (CVE)
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
-├── CLAUDE.md                   # Instrucciones para Claude Code
 ├── LICENSE                     # MIT
 ├── THIRD_PARTY_LICENSES.md
 ├── .dockerignore
