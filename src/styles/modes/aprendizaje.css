@@ -1,48 +1,227 @@
 /* ============================================================================
-   MODO APRENDIZAJE · Grid del alfabeto LSC
+   MODO APRENDIZAJE · Ficha de Espécimen & Grid Índice (v6 — Apéndice A.3)
+   Ficha Superior (108px) + Barra de Navegación + Grid Índice (6 col × 5 filas)
    ============================================================================ */
 
-#tab-aprendizaje {
-  animation: view-enter 220ms var(--ease-out);
+#tab-aprendizaje.active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+/* ── 1. Ficha Superior: Letra Activa & Navegación ────────────────────────── */
+.learn-detail {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  box-shadow: 0 4px 18px rgba(25, 42, 75, 0.35);
+}
+
+.learn-detail__head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-subtle);
+  padding-bottom: 8px;
+}
+
+.learn-detail__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+}
+
+.learn-detail__progress {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--ink);
+  padding: 3px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xs);
+}
+
+.learn-detail__progress .denom {
+  color: var(--ink-sub);
+  margin-left: 2px;
+}
+
+.learn-detail__display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: var(--space-2) 0;
+}
+
+.learn-detail__letter {
+  font-family: var(--font-display);
+  font-variation-settings: 'opsz' 96, 'wght' 800;
+  font-size: clamp(88px, 14vw, 110px);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  text-shadow: 0 0 24px var(--accent-glow);
+  user-select: none;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+/* ── Botones de Navegación (Anterior, Siguiente) ────────────────────────── */
+.learn-detail__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--hairline-subtle);
+}
+
+.learn-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xs);
+  color: var(--ink-mid);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.learn-action-btn:hover {
+  color: var(--ink);
+  background: var(--surface-hi);
+  border-color: var(--hairline-strong);
+}
+
+.learn-action-btn:active {
+  transform: scale(0.97);
+}
+
+.learn-action-btn--skip {
+  color: var(--warm);
+  border-color: rgba(198, 181, 141, 0.35);
+  background: rgba(198, 181, 141, 0.08);
+}
+
+.learn-action-btn--skip:hover {
+  background: rgba(198, 181, 141, 0.18);
+  border-color: var(--warm);
+  color: var(--warm-strong);
+}
+
+.learn-action-btn__icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.learn-detail__hint {
+  font-family: var(--font-ui);
+  font-size: var(--text-micro);
+  color: var(--ink-sub);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── 2. Grid Índice Compacto (6 Col × 5 Filas, Celdas ~44px) ───────────── */
+.alphabet-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alphabet-section__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+
+.alphabet-header {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.alphabet-header__sub {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .alphabet-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 3px;
+  gap: 6px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(25, 42, 75, 0.3);
 }
 
 .alphabet-cell {
-  aspect-ratio: 1;
+  height: 44px;
   display: grid;
   place-items: center;
-  background: transparent;
-  border: 1px solid var(--border-soft);
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 36, 'wght' 600;
-  font-size: 22px;
-  color: var(--ink-faint);
-  transition: background var(--dur-quick) var(--ease-out),
-              color var(--dur-quick) var(--ease-out),
-              border-color var(--dur-quick) var(--ease-out);
-  border-radius: 2px;
-}
-.alphabet-cell[data-state="seen"] {
-  background: var(--surface);
-  color: var(--ink-mid);
-}
-.alphabet-cell[data-state="active"] {
-  background: var(--surface-hi);
-  color: var(--accent);
-  border-color: var(--accent);
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-low);
+  user-select: none;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
 }
 
-.alphabet-header {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.28em;
-  color: var(--ink-mid);
-  text-transform: uppercase;
-  padding-bottom: 12px;
+.alphabet-cell:hover {
+  color: var(--ink);
+  border-color: var(--hairline-strong);
+  background: var(--surface-hi);
+  transform: translateY(-1px);
+}
+
+/* Letra vista (dominada): tinte discreto */
+.alphabet-cell[data-state="seen"] {
+  color: var(--ink);
+  border-color: var(--hairline-strong);
+  background: var(--surface-hi);
+}
+
+/* Letra activa: borde acento + fill sutil */
+.alphabet-cell[data-state="active"] {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.08);
+  z-index: 2;
 }

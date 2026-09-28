@@ -1,14 +1,19 @@
 const NIVELES_META = [
-  { label: 'NOVATO',   idx: 0 },
-  { label: 'BÁSICO',   idx: 1 },
-  { label: 'MEDIO',    idx: 2 },
-  { label: 'AVANZADO', idx: 3 },
-  { label: 'MAESTRO',  idx: 4 },
+  { label: 'NOVATO',   roman: 'I',   desc: 'Adquisición elemental (3–4 letras)', req: 3,  idx: 0 },
+  { label: 'BÁSICO',   roman: 'II',  desc: 'Rango intermedio (4–5 letras)',     req: 5,  idx: 1 },
+  { label: 'MEDIO',    roman: 'III', desc: 'Fluidez de transición (5–6 letras)', req: 7,  idx: 2 },
+  { label: 'AVANZADO', roman: 'IV',  desc: 'Precisión léxica (6–7 letras)',     req: 9,  idx: 3 },
+  { label: 'MAESTRO',  roman: 'V',   desc: 'Dominio dactilológico (7–9 letras)',req: 12, idx: 4 },
 ]
 
-// Posiciones X de los nodos en el SVG (viewBox 0 0 340 80)
-const NX = [34, 102, 170, 238, 306]
-const NY = 40
+// Nodos para viewBox 0 0 340 80
+const STAR_NODES = [
+  { x: 34,  y: 48 },  // I: Novato
+  { x: 102, y: 28 },  // II: Básico
+  { x: 170, y: 52 },  // III: Medio
+  { x: 238, y: 24 },  // IV: Avanzado
+  { x: 306, y: 42 },  // V: Maestro
+]
 
 export class GamePanel {
   private historyList:      HTMLElement | null = null
@@ -24,58 +29,44 @@ export class GamePanel {
     if (!panel) return
     panel.innerHTML = `
       <div class="game-stats">
-        <div class="game-stat">
-          <div class="game-stat__label">nivel</div>
-          <div class="game-stat__value" id="nivel-label">NOVATO</div>
-        </div>
-        <div class="game-stat">
-          <div class="game-stat__label">puntos</div>
-          <div class="game-stat__value" id="puntuacion">0</div>
-        </div>
-        <div class="game-stat">
-          <div class="game-stat__label">racha</div>
-          <div class="game-stat__value" id="racha-valor">0</div>
-        </div>
+        <div class="game-stat"><div class="game-stat__label">nivel</div>
+          <div class="game-stat__value" id="nivel-label">NOVATO</div></div>
+        <div class="game-stat"><div class="game-stat__label">puntos</div>
+          <div class="game-stat__value" id="puntuacion">0</div></div>
+        <div class="game-stat"><div class="game-stat__label">racha</div>
+          <div class="game-stat__value" id="racha-valor">0</div></div>
       </div>
-
       <div class="word-card">
         <div class="word-card__head">
           <span class="word-card__label">deletrea</span>
-          <span class="word-card__source">
-            <span class="word-card__source-icon">ai</span>
-            banco local
-          </span>
+          <span class="word-card__source"><span class="word-card__source-icon">ai</span>banco local</span>
         </div>
-
         <div class="word" id="letra-objetivo" aria-live="polite"></div>
-
         <div class="attempts">
           <span class="attempts__label">intentos</span>
-          <span class="attempts__dots">
-            <span class="attempts__dot"></span>
-            <span class="attempts__dot"></span>
-            <span class="attempts__dot"></span>
-          </span>
+          <span class="attempts__dots"><span class="attempts__dot"></span><span class="attempts__dot"></span><span class="attempts__dot"></span></span>
           <span class="attempts__hint">3 max</span>
         </div>
-
         <div class="word-card__progress">
           <div class="word-card__progress-label">
             <span>progreso del nivel</span>
-            <span class="word-card__progress-count" id="progreso-texto">
-              0<span class="denom">/10</span>
-            </span>
+            <span class="word-card__progress-count" id="progreso-texto">0<span class="denom">/10</span></span>
           </div>
-          <div class="word-card__progress-bar">
-            <div class="word-card__progress-fill" id="progreso-bar"></div>
-          </div>
+          <div class="word-card__progress-bar"><div class="word-card__progress-fill" id="progreso-bar"></div></div>
+        </div>
+        <div class="word-card__actions">
+          <button class="game-action-btn" id="btn-palabra-prev" type="button" aria-label="Palabra anterior">
+            <svg class="game-action-btn__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            <span>anterior</span>
+          </button>
+          <button class="game-action-btn" id="btn-palabra-next" type="button" aria-label="Siguiente palabra">
+            <span>siguiente</span>
+            <svg class="game-action-btn__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
         </div>
       </div>
-
-      <img id="imagen-pista" hidden alt="" aria-hidden="true" style="display:none!important"/>
-
       <div class="game-feedback fb-idle" id="feedback-mensaje" role="status">haz la seña…</div>
-
+      <img id="imagen-pista" hidden alt="" style="display:none!important"/>
       <div class="levels" id="levels-block">
         <div class="levels__head">
           <span class="levels__label">progresión</span>
@@ -87,7 +78,6 @@ export class GamePanel {
           </svg>
         </div>
       </div>
-
       <div class="history">
         <div class="history__head">
           <span class="history__label">palabras de la sesión</span>
@@ -104,32 +94,57 @@ export class GamePanel {
   private buildConstellation(nivelIdx: number): string {
     let svg = ''
 
-    // Líneas de conexión
-    for (let i = 0; i < NX.length - 1; i++) {
+    // Guías de constelación astronómica (coordenadas tenues)
+    svg += `<g class="lvl-guides" opacity="0.3">
+      <line x1="10" y1="20" x2="330" y2="20" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
+      <line x1="10" y1="40" x2="330" y2="40" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
+      <line x1="10" y1="60" x2="330" y2="60" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
+    </g>`
+
+    // Líneas entre nodos
+    for (let i = 0; i < STAR_NODES.length - 1; i++) {
+      const p1 = STAR_NODES[i]
+      const p2 = STAR_NODES[i + 1]
       const done = i < nivelIdx
-      svg += `<line id="lvl-line-${i}"
-        class="lvl-line${done ? ' lvl-line--done' : ''}"
-        x1="${NX[i]}" y1="${NY}" x2="${NX[i+1]}" y2="${NY}"/>`
+      const lineClass = done ? 'lvl-line lvl-line--done' : 'lvl-line'
+      const dash = done ? '' : 'stroke-dasharray="3 4"'
+
+      svg += `<line class="${lineClass}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" ${dash}/>`
     }
 
-    // Nodos y labels
-    for (let i = 0; i < NX.length; i++) {
+    // Nodos celestes
+    for (let i = 0; i < STAR_NODES.length; i++) {
+      const p = STAR_NODES[i]
       const done    = i < nivelIdx
       const current = i === nivelIdx
-      const nodeClass = done ? 'lvl-node--done' : current ? 'lvl-node--current' : 'lvl-node--locked'
-      const labelClass = done ? 'lvl-label' : current ? 'lvl-label--current' : 'lvl-label--locked'
+      const nodeClass = done ? 'lvl-node lvl-node--done' : current ? 'lvl-node lvl-node--current' : 'lvl-node lvl-node--locked'
+      const labelClass = done ? 'lvl-label lvl-label--done' : current ? 'lvl-label lvl-label--current' : 'lvl-label lvl-label--locked'
 
+      svg += `<g class="lvl-station" data-level="${i}">`
       if (current) {
-        svg += `<circle id="lvl-glow-${i}" class="lvl-node--current-glow" cx="${NX[i]}" cy="${NY}" r="18"/>`
+        svg += `<circle class="lvl-node--current-glow" cx="${p.x}" cy="${p.y}" r="14"/>`
+        svg += `<circle class="lvl-node--current-orbit" cx="${p.x}" cy="${p.y}" r="9"/>`
       }
-      svg += `<circle id="lvl-node-${i}" class="lvl-node ${nodeClass}" cx="${NX[i]}" cy="${NY}" r="10"/>`
-      svg += `<text id="lvl-lbl-${i}" class="lvl-label ${labelClass}" x="${NX[i]}" y="${NY + 26}">${NIVELES_META[i].label.toLowerCase()}</text>`
+      svg += `<circle class="${nodeClass}" cx="${p.x}" cy="${p.y}" r="${current ? 6.5 : done ? 5 : 4}"/>`
+      if (current) {
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="2" fill="var(--warm)"/>`
+      }
+      const labelY = p.y > 40 ? p.y - 12 : p.y + 18
+      svg += `<text class="${labelClass}" x="${p.x}" y="${labelY}" text-anchor="middle">${NIVELES_META[i].label.toLowerCase()}</text>`
+      svg += `</g>`
     }
 
     return svg
   }
 
   private vincularEventos(): void {
+    document.getElementById('btn-palabra-prev')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('yoso:juego:anterior'))
+    })
+    document.getElementById('btn-palabra-next')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('yoso:juego:siguiente'))
+    })
+
     window.addEventListener('yoso:juego', (e) => {
       const d = (e as CustomEvent<Record<string, unknown>>).detail
       switch (d.tipo) {

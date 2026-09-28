@@ -1,57 +1,163 @@
 /* ============================================================================
-   SIGNATURE · Footer pill con firma de Esteban Cotera (intocable)
+   FOOTER (v6 — Apéndice A.4)
+   Fondo --bg-deep · 4 Columnas Divididas por Hairlines · Títulos Micro Mono
    ============================================================================ */
 
+#site-footer,
 footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 14px 28px;
-}
-
-.foot-author {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 14px 8px 16px;
+  width: 100%;
   background: var(--bg-deep);
-  border-radius: 999px;
+  border-top: 1px solid var(--hairline);
+  margin-top: auto;
+  padding: 0;
 }
 
-.foot-author__sig {
+.foot-grid {
+  max-width: var(--breakpoint-wide);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1.3fr;
+}
+
+.foot-brand,
+.foot-col {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-right: 1px solid var(--hairline);
+}
+
+.foot-col:last-child {
+  border-right: none;
+}
+
+/* ── Columna 1: Brand ──────────────────────────────────────────────────── */
+.foot-brand__name {
   font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 48, 'wght' 600;
-  font-size: 13.5px;
-  letter-spacing: -0.005em;
+  font-variation-settings: 'opsz' 48, 'wght' 800;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
-.foot-author__sig .lead {
+
+.foot-brand__full {
   font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 10.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+  color: var(--accent);
   text-transform: uppercase;
-  color: var(--ink-mid);
-  margin-right: 8px;
 }
 
-.foot-author__gh {
+.foot-brand__desc {
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-mid);
+  margin: 0;
+  max-width: 36ch;
+}
+
+/* ── Columnas de Links: Títulos Micro Uppercase Tracking 0.1em ─────────── */
+.foot-col__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.foot-link {
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  color: var(--ink-mid);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--dur-quick) var(--ease-out);
+}
+.foot-link:hover {
+  color: var(--accent);
+}
+
+.foot-link--icon {
+  word-break: break-all;
+}
+
+.foot-note {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-sub);
+  margin-top: auto;
+}
+
+/* ── Barra Final: © 2026 YOSO + Developed by Esteban Cotera ────────────── */
+.foot-bar {
+  max-width: var(--breakpoint-wide);
+  margin: 0 auto;
+  padding: 14px 24px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-sub);
+}
+
+.foot-bar__sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.foot-bar__sig .lead {
+  color: var(--ink-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.foot-gh {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--ink);
-  text-decoration: none;
-  transition: background var(--dur-quick) var(--ease-out),
-              color var(--dur-quick) var(--ease-out),
-              transform var(--dur-quick) var(--ease-out);
+  color: var(--ink-sub);
+  transition: color var(--dur-quick) var(--ease-out);
 }
-.foot-author__gh:hover {
-  background: var(--accent);
-  color: var(--bg-deeper);
-  transform: translateY(-1px);
+.foot-gh:hover {
+  color: var(--accent);
 }
-.foot-author__gh svg { width: 13px; height: 13px; }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 920px) {
+  .foot-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .foot-col:nth-child(2) {
+    border-right: none;
+  }
+  .foot-col:nth-child(3),
+  .foot-col:nth-child(4) {
+    border-top: 1px solid var(--hairline);
+  }
+}
+
+@media (max-width: 640px) {
+  .foot-grid {
+    grid-template-columns: 1fr;
+  }
+  .foot-brand,
+  .foot-col {
+    border-right: none;
+    border-bottom: 1px solid var(--hairline);
+    padding: 20px 16px;
+  }
+  .foot-bar {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

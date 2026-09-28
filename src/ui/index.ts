@@ -1,6 +1,6 @@
 import { HUD }           from './hud'
 import { DebugPanel }    from './debug'
-import { Toast }         from './toast'
+import { Toast, type TipoToast } from './toast'
 import { Onboarding }    from './onboarding'
 import { AlphabetLearn } from './learn'
 import { Splash }        from './splash'
@@ -42,8 +42,8 @@ export class RenderizadorUI {
 
   mensajeSplash(mensaje: string, esError = false): void        { this.splash.mensaje(mensaje, esError) }
   ocultarSplash(): void                                         { this.splash.ocultar() }
-  mostrarEstadoVacio(err: DOMException | null, onReintentar: () => void, bloqueado = false): void {
-    this.splash.mostrarEstadoVacio(err, onReintentar, bloqueado)
+  mostrarEstadoVacio(err: DOMException | null, onReintentar: () => void, estado: import('./splash').TipoEstadoCamara | boolean = 'other'): void {
+    this.splash.mostrarEstadoVacio(err, onReintentar, estado)
     this.panelLeft.setLive(false)
   }
   ocultarEstadoVacio(): void                                    { this.splash.ocultarEstadoVacio() }
@@ -76,12 +76,12 @@ export class RenderizadorUI {
     this.hud.actualizarFps(fps)
   }
 
-  mostrarToast(id: string, msg: string, tipo: 'info' | 'warn' | 'error' = 'info', dur = 5000): void {
+  mostrarToast(id: string, msg: string, tipo: TipoToast = 'info', dur = 5000): void {
     this.toast.mostrar(id, msg, tipo, dur)
   }
   ocultarToast(id: string): void                                { this.toast.ocultar(id) }
 
-  mostrarOnboarding(): Promise<void>                            { return this.onboarding.mostrar() }
+  mostrarOnboarding(forzado = false): Promise<void>             { return this.onboarding.mostrar(forzado) }
 
   resaltarSena(letra: string): void                             { this.learn.resaltar(letra) }
   limpiarSena(): void                                           { this.learn.limpiar() }

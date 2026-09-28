@@ -1,62 +1,116 @@
 /* ============================================================================
-   TOKENS · YOSO v3 — paleta neutral gris OKLCH + teal
-   Bricolage Grotesque / Geist / Geist Mono
+   YOSO · SYSTEM TOKENS (v6 — PRIMERA PALETA: AZUL MARINO)
+   Derivada de: #3A4D96 #2C4F8E #2F517B #203057 #192A4B
    ============================================================================ */
 
 :root {
-  /* Superficies */
-  --bg-base:    oklch(0.27 0 0);
-  --bg-deep:    oklch(0.21 0 0);
-  --bg-deeper:  oklch(0.17 0 0);
-  --surface:    oklch(0.32 0 0);
-  --surface-hi: oklch(0.38 0 0);
+  /* ── Canvas y Superficies (Azul Marino HETAH Swatches) ────────────────── */
+  /* Swatches: #192A4B (canvas) | #203057 (surface) | #2F517B (surface-hi) | #2C4F8E (deep) | #3A4D96 (brand) */
+  --bg-canvas:        #192A4B;
+  --bg-base:          #192A4B;
+  --bg-deep:          #13203A;
+  --bg-deeper:        #0E172B;
+  --surface:          #203057;
+  --surface-hi:       #2F517B;
+  --surface-accent:   #2C4F8E;
 
-  /* Bordes */
-  --border:        oklch(0.32 0 0);
-  --border-strong: oklch(0.45 0 0);
-  --border-soft:   oklch(0.28 0 0);
+  /* Hairlines (1px estructural) */
+  --hairline:         #2A3C6A;
+  --hairline-subtle:  rgba(47, 81, 123, 0.45);
+  --hairline-strong:  #3A4D96;
+  --border:           var(--hairline);
+  --border-soft:      var(--hairline-subtle);
+  --border-strong:    var(--hairline-strong);
 
-  /* Texto */
-  --ink:       oklch(0.92 0.005 100);
-  --ink-mid:   oklch(0.78 0 0);
-  --ink-sub:   oklch(0.66 0 0);
-  --ink-low:   oklch(0.55 0 0);
-  --ink-faint: oklch(0.42 0 0);
-  --ink-ghost: oklch(0.32 0 0);
+  /* Tinta — luminosa y de alto contraste */
+  --ink:              #F0F4FC;
+  --ink-mid:          #B8C5E0;
+  --ink-sub:          #8898B8;
+  --ink-low:          #5A6A8A;
+  --ink-faint:        #3C4868;
+  --ink-ghost:        #203057;
 
-  /* Acento teal */
-  --accent:        oklch(0.74 0.14 195);
-  --accent-strong: oklch(0.64 0.17 195);
-  --accent-dim:    oklch(0.45 0.07 195);
+  /* Señal del SISTEMA — azul vibrante */
+  --accent:           #5B8BD5;
+  --accent-base:      #3A4D96;
+  --accent-strong:    #7BA3E8;
+  --accent-dim:       #203057;
+  --accent-glow:      rgba(91, 139, 213, 0.28);
 
-  /* Estados */
-  --success: oklch(0.74 0.14 145);
-  --danger:  oklch(0.62 0.18 25);
+  /* Señal HUMANA — tan como contrapunto cálido */
+  --warm:             #C6B58D;
+  --warm-strong:      #D9CBAA;
+  --warm-dim:         #5C5340;
+  --accent-human:     var(--warm);
+
+  /* Semánticos */
+  --success:          #7FA98F;
+  --success-glow:     rgba(127, 169, 143, 0.25);
+  --danger:           #C4685C;
+  --danger-glow:      rgba(196, 104, 92, 0.25);
+  --warning:          #C9A15B;
 
   /* Tipografía */
-  --font-brand:   'Bricolage Grotesque Variable', system-ui, sans-serif;
-  --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
-  --font-ui:      'Geist Variable', system-ui, -apple-system, sans-serif;
-  --font-mono:    'Geist Mono Variable', ui-monospace, monospace;
+  --font-brand:       'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-display:     'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-ui:          'Geist Variable', system-ui, sans-serif;
+  --font-mono:        'Geist Mono Variable', ui-monospace, monospace;
 
-  /* Easing */
-  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Escala tipográfica */
+  --text-hero:        8rem;     /* 128px */
+  --text-h1:          2.5rem;   /* 40px */
+  --text-h2:          1.75rem;  /* 28px */
+  --text-body:        1rem;     /* 16px */
+  --text-small:       0.875rem; /* 14px */
+  --text-micro:       0.75rem;  /* 12px */
 
-  /* Spacing */
-  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
-  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
-  --space-8: 32px;
+  /* Espaciado instrumental */
+  --space-1:          4px;
+  --space-2:          8px;
+  --space-3:          12px;
+  --space-4:          16px;
+  --space-6:          24px;
+  --space-8:          32px;
+  --space-12:         48px;
+  --space-16:         64px;
 
-  --radius: 6px;
+  /* Motion */
+  --ease-out:         cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:      cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-snap:        cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-instant:      100ms;
+  --dur-quick:        160ms;
+  --dur-base:         240ms;
+  --dur-slow:         360ms;
 
-  --z-sticky:  10;
-  --z-overlay: 100;
-  --z-modal:   200;
-  --z-toast:   300;
+  /* Radios instrumentales */
+  --radius-xs:        2px;
+  --radius-sm:        3px;
+  --radius:           4px;
+  --radius-md:        6px;
+  --radius-lg:        8px;
 
-  --dur-instant: 120ms;
-  --dur-quick:   160ms;
-  --dur-base:    240ms;
-  --dur-slow:    400ms;
+  /* Capas */
+  --z-sticky:         10;
+  --z-overlay:        100;
+  --z-modal:          200;
+  --z-toast:          300;
 }
+
+/* ============================================================================
+   PALETAS ALTERNATIVAS DOCUMENTADAS PARA ITERAR
+   ============================================================================
+   SEGUNDA PALETA: TIERRA
+   --bg-canvas: #16120E; --bg-deep: #1E1913; --bg-deeper: #100D0A;
+   --surface: #262019; --surface-hi: #2F2720;
+   --hairline: #352B20; --hairline-subtle: #262019; --hairline-strong: #4A3D2E;
+   --ink: #EDE7DA; --ink-mid: #B5AB99; --ink-sub: #948A78;
+   --accent: #C6B58D; --warm: #B29683; --success: #93A26B; --danger: #A85A5F;
+
+   TERCERA PALETA: MORADO
+   --bg-canvas: #15122A; --bg-deep: #1F1A38; --bg-deeper: #0D0A1A;
+   --surface: #2A2448; --surface-hi: #373260;
+   --hairline: #373277; --hairline-subtle: #2A2448; --hairline-strong: #4E4A9A;
+   --ink: #E4E0F0; --ink-mid: #A9A5C8; --ink-sub: #9590B8;
+   --accent: #7779C0; --warm: #A7A5D4; --success: #7FA98F; --danger: #C4685C;
+   ============================================================================ */

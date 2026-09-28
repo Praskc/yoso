@@ -110,8 +110,8 @@ const excluirWasmRollup: Plugin = {
 }
 
 export default defineConfig({
-  server:  { port: 5173, headers: COOP_HEADERS, allowedHosts: true },
-  preview: { headers: COOP_HEADERS },
+  server:  { host: '0.0.0.0', port: 3000, headers: COOP_HEADERS, allowedHosts: true },
+  preview: { host: '0.0.0.0', port: 3000, headers: COOP_HEADERS },
   optimizeDeps: {
     exclude: ['onnxruntime-web', '@mediapipe/tasks-vision']
   },

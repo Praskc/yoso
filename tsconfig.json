@@ -8,6 +8,7 @@
     "noUnusedParameters": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
+    "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "lib": ["ES2020", "DOM"]

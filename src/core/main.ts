@@ -6,9 +6,27 @@ document.addEventListener('DOMContentLoaded', () => {
   void app.iniciar()
 })
 
-// Registro del Service Worker para capacidades PWA offline-first
+// Invalidación y limpieza inmediata de caché persistente / Service Worker viejo
+try {
+  const PURGE_KEY = 'yoso_purge_manifesto_v10'
+  if (!localStorage.getItem(PURGE_KEY)) {
+    localStorage.removeItem('yosoOnboarded')
+    localStorage.setItem(PURGE_KEY, 'true')
+  }
+} catch {}
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
-  })
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      void registration.unregister()
+    }
+  }).catch(() => {})
+}
+
+if ('caches' in window) {
+  caches.keys().then((keys) => {
+    for (const key of keys) {
+      void caches.delete(key)
+    }
+  }).catch(() => {})
 }

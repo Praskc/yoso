@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>YOSO · You Only Sign Once</title>
-  <meta name="description" content="YOSO. Reconocimiento del alfabeto dactilológico LSC en tiempo real, 100% en el navegador. Desarrollado en Sincelejo.">
-  <meta name="theme-color" content="#363636">
+  <meta name="description" content="Reconocimiento del alfabeto dactilológico LSC en tiempo real, 100% en el navegador. Desarrollado en Sincelejo.">
+  <meta property="og:title" content="YOSO · You Only Sign Once">
+  <meta property="og:description" content="Reconocimiento del alfabeto dactilológico LSC en tiempo real, 100% en el navegador. Desarrollado en Sincelejo.">
+  <meta name="theme-color" content="#3A4D96">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,58 +16,114 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/favicon.svg">
 
-  <link rel="preload" href="/YOSO.onnx" as="fetch" crossorigin="anonymous" fetchpriority="high">
-  <link rel="preload" href="/Centroides.json" as="fetch" crossorigin="anonymous" fetchpriority="high">
-
-<link rel="stylesheet" href="/src/styles/index.css">
+  <link rel="stylesheet" href="/src/styles/index.css">
 </head>
 <body>
 
-  <!-- Splash ─────────────────────────────────────────── -->
+  <!-- Splash Screen (Apéndice A.5) -->
   <div id="splash-screen">
-    <div class="splash-inner">
-      <span class="splash-status">Cargando motor</span>
-      <span class="splash-wordmark">YOSO</span>
-      <span class="splash-slogan">You only sign once</span>
-      <span class="splash-meta">LSC · SINCELEJO · v3.0</span>
+    <div class="splash-card">
+      <div class="splash-id">
+        <span class="splash-name">YOSO</span>
+        <span class="splash-sub">You only sign once</span>
+      </div>
+      <div class="splash-loader">
+        <span class="splash-spin" id="splash-spin"></span>
+        <span class="splash-step" id="splash-step">Iniciando runtime…</span>
+      </div>
+      <div class="splash-tip">
+        <span class="splash-tip-cat" id="splash-tip-cat">lsc</span>
+        <p class="splash-tip-body" id="splash-tip-body">…</p>
+        <span class="splash-tip-n" id="splash-tip-n">1 / 12</span>
+        <div class="splash-tip-track"><div class="splash-drain" id="splash-drain"></div></div>
+      </div>
     </div>
   </div>
 
-  <!-- App shell ──────────────────────────────────────── -->
-  <div id="app">
+  <!-- App Shell -->
+  <div id="app" data-mode="traductor">
 
-    <!-- Topbar -->
-    <header class="topbar">
+    <!-- Topbar (Header sticky inspirado en HETAH) -->
+    <header class="topbar" id="app-header">
       <div class="topbar__brand">
+        <div class="topbar__logo-badge" aria-hidden="true">
+          <svg class="topbar__logo-svg" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="yoso-logo-grad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#60A5FA"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- Símbolo estilizado YOSO: Fusión de letra Y geométrica + señal de mano LSC -->
+            <path d="M6 6L16 17L26 6" stroke="url(#yoso-logo-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 17V27" stroke="url(#yoso-logo-grad)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="16" cy="11" r="2.5" fill="#38BDF8"/>
+            <circle cx="6" cy="6" r="2" fill="#60A5FA"/>
+            <circle cx="26" cy="6" r="2" fill="#60A5FA"/>
+          </svg>
+        </div>
         <span class="topbar__title">
-          You Only <span class="topbar__title-accent">Sign</span> Once
+          YO<span class="topbar__title-accent">SO</span><span class="topbar__title-dot">.</span>
         </span>
-        <span class="topbar__tag">Sincelejo</span>
       </div>
       <nav class="nav" role="tablist" aria-label="Modos">
-        <button class="nav__link mode-tab is-active active" data-tab="traductor"     data-modo="traductor"     role="tab" aria-selected="true">traductor</button>
-        <button class="nav__link mode-tab"                  data-tab="entrenamiento" data-modo="entrenamiento" role="tab" aria-selected="false">entrenamiento</button>
-        <button class="nav__link mode-tab"                  data-tab="aprendizaje"   data-modo="aprendizaje"   role="tab" aria-selected="false">aprendizaje</button>
+        <button class="nav__link mode-tab is-active active" data-tab="traductor" data-modo="traductor" role="tab" aria-selected="true">
+          <svg class="nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+          <span>traductor</span>
+        </button>
+        <button class="nav__link mode-tab" data-tab="entrenamiento" data-modo="entrenamiento" role="tab" aria-selected="false">
+          <svg class="nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="6"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+          </svg>
+          <span>entrenamiento</span>
+        </button>
+        <button class="nav__link mode-tab" data-tab="aprendizaje" data-modo="aprendizaje" role="tab" aria-selected="false">
+          <svg class="nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          <span>aprendizaje</span>
+        </button>
+        <button class="nav__link nav__link--aux" id="topbar-btn-onboarding" type="button" aria-label="Cómo usar YOSO">
+          <svg class="nav__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>cómo usar</span>
+        </button>
       </nav>
-      <span class="edition">
-        <span class="edition__brand">YOSO</span>
-        <span class="edition__hover">unisucrino</span>
-        <span class="edition__tag">beta</span>
-      </span>
+      <div class="topbar__actions">
+        <div class="topbar__pill-btn topbar__locale-pill" id="topbar-pill-action" role="status" title="Lengua de Señas Colombiana (LSC)">
+          <svg class="topbar__flag" width="20" height="14" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Bandera de Colombia">
+            <rect width="20" height="7" fill="#FCD116"/>
+            <rect y="7" width="20" height="3.5" fill="#003893"/>
+            <rect y="10.5" width="20" height="3.5" fill="#CE1126"/>
+          </svg>
+          <span class="topbar__pill-text" id="topbar-pill-label">Colombia LSC</span>
+        </div>
+        <span class="topbar__version topbar__version--beta">Beta Edition!</span>
+      </div>
     </header>
 
-    <!-- Main 2-col -->
+    <!-- Main Stage (Arquitectura constante: #feed-col a la izquierda, #sidebar-col a la derecha) -->
     <main id="app-main">
 
-      <!-- Col izquierda: cámara + transcripción (siempre visible) -->
+      <!-- Columna izquierda: video + transcripción -->
       <div id="feed-col">
         <div class="feed">
-          <span class="feed__live"><span>en vivo</span></span>
+          <span class="feed__live" data-state="off">
+            <span class="feed__live-dot"></span>
+            <span>en vivo</span>
+          </span>
 
-          <video  class="input_video"   autoplay muted playsinline></video>
+          <video class="input_video" autoplay muted playsinline></video>
           <canvas class="output_canvas"></canvas>
 
-          <div class="feed__roi">
+          <div class="feed__roi" data-state="idle">
             <span class="feed__roi-label">zona de detección</span>
             <span class="feed__roi-corner feed__roi-corner--tl"></span>
             <span class="feed__roi-corner feed__roi-corner--tr"></span>
@@ -73,45 +131,74 @@
             <span class="feed__roi-corner feed__roi-corner--br"></span>
           </div>
 
+          <!-- Cartel de Error / Acceso a Cámara (Diseño Moderno HETAH) -->
           <div id="empty-state" class="empty-state" hidden>
-            <p class="empty-state__eyebrow">SIN ACCESO A CÁMARA</p>
-            <div class="empty-state__glyph">?</div>
-            <p class="empty-state__title">YOSO necesita acceso a la cámara para reconocer las señas.</p>
-            <button class="btn" id="es-retry">REINTENTAR ↻</button>
-            <p class="empty-state__hint">Verifica permisos en tu navegador</p>
+            <div class="empty-state__card">
+              <div class="empty-state__icon-wrap">
+                <div class="empty-state__icon-halo"></div>
+                <div class="empty-state__icon-box" id="es-icon-box">
+                  <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m2 2 20 20"/>
+                    <path d="M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1"/>
+                    <path d="M9.5 4h5L16 7H8l1.5-3Z"/>
+                    <circle cx="12" cy="13" r="3"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="empty-state__badge" id="es-badge">CÁMARA REQUERIDA</div>
+              <h3 class="empty-state__title" id="es-title">No pudimos conectar tu cámara</h3>
+              <p class="empty-state__desc" id="es-desc">YOSO necesita ver tus manos para reconocer las señas en tiempo real.</p>
+
+              <div class="empty-state__guide" id="es-guide">
+                <div class="empty-state__step">
+                  <span class="step-num">1</span>
+                  <span>Toca el icono de ajustes o candado en la barra superior de tu navegador</span>
+                </div>
+                <div class="empty-state__step">
+                  <span class="step-num">2</span>
+                  <span>Activa la opción de <strong>Cámara</strong> para permitir el acceso</span>
+                </div>
+              </div>
+
+              <div class="empty-state__actions">
+                <button type="button" class="empty-state__btn-retry" id="es-retry">
+                  <span>Reintentar conexión</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
+        <!-- Transcripción (Apéndice A.6) -->
         <div id="transcript-block" class="transcript">
           <div class="transcript__head">
             <span class="transcript__label">transcripción</span>
-            <button class="transcript__clear btn btn--ghost" id="btn-clear" aria-label="Limpiar texto">limpiar</button>
+            <button class="transcript__clear btn btn--ghost" id="btn-clear" aria-label="Limpiar texto">
+              <svg class="transcript__clear-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+              <span>limpiar</span>
+            </button>
           </div>
           <div class="transcript__text" id="final-text" aria-live="polite"><span class="transcript__caret"></span></div>
         </div>
       </div>
 
-      <!-- Col derecha: sidebar por modo -->
+      <!-- Columna derecha: sidebar con UN panel activo a la vez -->
       <div id="sidebar-col">
-
-        <!-- Traductor sidebar -->
         <aside id="tab-traductor" class="sidebar tab-panel active" role="tabpanel"></aside>
-
-        <!-- Entrenamiento sidebar -->
         <aside id="tab-entrenamiento" class="sidebar tab-panel" role="tabpanel"></aside>
-
-        <!-- Aprendizaje sidebar -->
         <aside id="tab-aprendizaje" class="sidebar tab-panel" role="tabpanel"></aside>
-
       </div>
+
     </main>
 
-    <!-- Footer -->
+    <!-- Footer (Apéndice A.4) -->
     <footer id="site-footer"></footer>
 
   </div>
 
-  <!-- Overlays ────────────────────────────────────────── -->
+  <!-- Overlays -->
   <div id="onboarding-root" role="dialog" aria-modal="true"></div>
   <div id="toast-root" aria-live="polite" aria-atomic="false"></div>
 

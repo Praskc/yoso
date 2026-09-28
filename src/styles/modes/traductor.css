@@ -1,15 +1,455 @@
 /* ============================================================================
-   MODO TRADUCTOR · sidebar: detection + buffer + metrics + stream
-   El contenido lo renderiza output.ts.
+   MODO TRADUCTOR · El Monolito (v6 — Apéndice A.1)
+   Letra Protagonista (112-128px) > Arco > Buffer > Métricas > Tendencia
    ============================================================================ */
 
-#tab-traductor {
-  animation: view-enter 220ms var(--ease-out);
+#tab-traductor.active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
 }
-#tab-traductor > * {
-  animation: block-enter 220ms var(--ease-out) backwards;
+
+/* ── 1. Monolito de Detección ─────────────────────────────────────────── */
+.detection {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: var(--space-4);
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4px 18px rgba(25, 42, 75, 0.35);
 }
-#tab-traductor > *:nth-child(1) { animation-delay: 0ms; }
-#tab-traductor > *:nth-child(2) { animation-delay: 40ms; }
-#tab-traductor > *:nth-child(3) { animation-delay: 80ms; }
-#tab-traductor > *:nth-child(4) { animation-delay: 120ms; }
+
+.detection__letter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.detection__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+}
+
+.detection__value {
+  font-family: var(--font-display);
+  font-variation-settings: 'opsz' 96, 'wght' 800;
+  font-size: clamp(88px, 12vw, 120px);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: var(--ink-ghost);
+  user-select: none;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.detection__value:not(:empty):not(:contains("·")) {
+  color: var(--ink);
+}
+
+.detection__value[data-changing="true"] {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.detection__sub {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-sub);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.detection__sub::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.detection:has(#prediction:not([data-changing="true"]):not(:empty)) .detection__sub::before {
+  background: var(--accent);
+}
+
+/* ── Arco de Confianza (96px) ─────────────────────────────────────────── */
+.confidence-arc {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
+
+.confidence-arc__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.confidence-arc__track {
+  fill: none;
+  stroke: var(--bg-deep);
+  stroke-width: 5;
+}
+
+.confidence-arc__fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--dur-base) var(--ease-out);
+}
+
+.confidence-arc__center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.confidence-arc__pct {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 24px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.confidence-arc__pct .unit {
+  font-size: 11px;
+  color: var(--ink-sub);
+  margin-left: 1px;
+  font-weight: 400;
+}
+
+/* ── 2. Buffer de Confirmación (Estabilizador de 9 Celdas Rediseñado) ── */
+.buffer-block {
+  padding: 18px 22px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(10, 18, 38, 0.4);
+  transition: border-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
+}
+
+.buffer-block[data-active="true"] {
+  border-color: rgba(91, 139, 213, 0.4);
+}
+
+.buffer-block[data-full="true"] {
+  border-color: #5B8BD5;
+  box-shadow: 0 0 24px rgba(91, 139, 213, 0.35);
+}
+
+.buffer-block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.buffer-block__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buffer-block__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(19, 32, 58, 0.85);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.buffer-block__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.buffer-block__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.buffer-block__sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--ink-sub);
+  letter-spacing: 0.04em;
+}
+
+.buffer-block__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(19, 32, 58, 0.85);
+  border: 1px solid var(--hairline);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.buffer-block__count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #7BA3E8;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.buffer-block__count .denom {
+  color: var(--ink-sub);
+  font-weight: 500;
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+.buffer-block__bar {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.buffer-block__cell {
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(19, 32, 58, 0.85);
+  border: 1px solid var(--hairline);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.buffer-block__cell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent);
+  pointer-events: none;
+}
+
+.buffer-block__cell[data-on="true"] {
+  background: linear-gradient(180deg, #7BA3E8 0%, #5B8BD5 100%);
+  border-color: #7BA3E8;
+  box-shadow: 0 0 10px rgba(91, 139, 213, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.buffer-block__cell[data-on="partial"] {
+  border-color: #5B8BD5;
+  background: rgba(91, 139, 213, 0.28);
+  animation: buffer-cell-pulse 1s infinite alternate;
+}
+
+@keyframes buffer-cell-pulse {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; box-shadow: 0 0 8px rgba(91, 139, 213, 0.4); }
+}
+
+.buffer-block__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(47, 81, 123, 0.35);
+  padding-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--ink-sub);
+  letter-spacing: 0.04em;
+}
+
+.buffer-block__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.buffer-block__hint-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #5B8BD5;
+  box-shadow: 0 0 6px #5B8BD5;
+}
+
+.buffer-block__guide {
+  color: var(--ink-low);
+}
+
+/* ── 3. Tira de Métricas (4 Columnas, Hairline Divisor) ────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(25, 42, 75, 0.3);
+}
+
+.metric {
+  padding: 10px 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.metric__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+}
+
+.metric__value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.metric__value .unit {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--ink-sub);
+  margin-left: 2px;
+}
+
+.metric__value--sm {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metric__value[data-state="on"] {
+  color: var(--accent);
+}
+.metric__value[data-state="warn"] {
+  color: var(--warning);
+}
+.metric__value[data-state="off"] {
+  color: var(--ink-sub);
+}
+
+/* ── 4. Gráfica de Tendencia (Stream Plot) ─────────────────────────────── */
+.stream {
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: 0 4px 16px rgba(25, 42, 75, 0.3);
+}
+
+.stream__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-subtle);
+  padding-bottom: 6px;
+}
+
+.stream__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
+  text-transform: uppercase;
+}
+
+.stream__avg {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.stream__plot {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  align-items: center;
+  height: 60px;
+}
+
+.stream__y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.stream__chart {
+  height: 60px;
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline-subtle);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  position: relative;
+}
+
+.stream__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.stream__x-axis {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+}
+
+.stream__x-axis-inner {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}

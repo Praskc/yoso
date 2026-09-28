@@ -1,71 +1,85 @@
 /* ============================================================================
-   FEED · Contenedor de cámara con ROI + live badge + transcript
+   FEED · Video Chamber, Live Indicator & Generous Transcript (v6)
    ============================================================================ */
 
 .feed {
   position: relative;
   aspect-ratio: 16 / 10;
-  background: var(--bg-deeper);
-  border-radius: var(--radius);
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: 0 4px 20px rgba(25, 42, 75, 0.4);
 }
 
-.input_video,
+.input_video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+}
+
 .output_canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
-/* Badge EN VIVO */
+/* ── Live Badge ────────────────────────────────────────────────────────── */
 .feed__live {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: var(--space-4);
+  left: var(--space-4);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 13px 7px 11px;
-  background: oklch(0.11 0 0 / 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 999px;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  background: rgba(25, 42, 75, 0.85);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xs);
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--text-micro);
   font-weight: 500;
-  letter-spacing: 0.22em;
-  color: var(--accent);
+  letter-spacing: 0.08em;
+  color: var(--ink-mid);
   text-transform: uppercase;
   z-index: 3;
-  transition: opacity var(--dur-quick) var(--ease-out);
-}
-.feed__live::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-  animation: pulse 1.6s var(--ease-out) infinite;
-}
-.feed__live[data-state="off"] {
-  color: var(--ink-sub);
-}
-.feed__live[data-state="off"]::before {
-  background: var(--ink-sub);
-  box-shadow: none;
-  animation: none;
+  pointer-events: none;
+  transition: all var(--dur-quick) var(--ease-out);
 }
 
-/* ROI: zona de detección con brackets */
+.feed__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.feed__live[data-state="on"] {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.feed__live[data-state="on"] .feed__live-dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse-signal 1.8s var(--ease-out) infinite;
+}
+
+/* ── Retículo de Detección (ROI) ───────────────────────────────────────── */
 .feed__roi {
   position: absolute;
-  inset: 12% 18% 14% 18%;
+  inset: 10% 15% 10% 15%;
   pointer-events: none;
-  border: 1px dashed var(--accent-dim);
+  border: 1px dashed rgba(91, 139, 213, 0.3);
   z-index: 2;
+  transition: border-color var(--dur-quick) var(--ease-out);
 }
 
 .feed__roi-label {
@@ -73,120 +87,117 @@
   top: -22px;
   left: 0;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--text-micro);
   font-weight: 500;
-  letter-spacing: 0.32em;
-  color: var(--accent);
+  letter-spacing: 0.08em;
+  color: var(--ink-sub);
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .feed__roi-corner {
   position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid var(--accent);
-  opacity: 0.9;
-  filter: drop-shadow(0 0 3px var(--accent));
+  width: 16px;
+  height: 16px;
+  border: 2px solid #5B8BD5;
+  transition: all var(--dur-quick) var(--ease-out);
 }
-.feed__roi-corner--tl { top: -1px;    left: -1px;    border-right: none; border-bottom: none; }
-.feed__roi-corner--tr { top: -1px;    right: -1px;   border-left: none;  border-bottom: none; }
-.feed__roi-corner--bl { bottom: -1px; left: -1px;    border-right: none; border-top: none; }
-.feed__roi-corner--br { bottom: -1px; right: -1px;   border-left: none;  border-top: none; }
 
-/* Estado fuera de zona */
+.feed__roi-corner--tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+.feed__roi-corner--tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+.feed__roi-corner--bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+.feed__roi-corner--br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
 .feed__roi[data-state="warning"] {
-  border-color: var(--danger);
+  border-color: rgba(248, 113, 113, 0.6);
 }
 .feed__roi[data-state="warning"] .feed__roi-label {
-  color: var(--danger);
+  color: #F87171;
 }
 .feed__roi[data-state="warning"] .feed__roi-corner {
-  border-color: var(--danger);
-  filter: drop-shadow(0 0 4px var(--danger));
+  border-color: #F87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
 }
 
-/* Transcript debajo del feed (solo en modo traductor) */
+/* ── Transcripción (Fondo --surface, 20px padding) ─────────────────────── */
 .transcript {
-  padding: 16px 20px;
-  background: var(--bg-deep);
-  border-radius: var(--radius);
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: 0 4px 16px rgba(25, 42, 75, 0.3);
 }
+
 .transcript__head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-subtle);
+  padding-bottom: var(--space-2);
 }
+
 .transcript__label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-micro);
   font-weight: 500;
-  letter-spacing: 0.28em;
-  color: var(--ink-mid);
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
   text-transform: uppercase;
 }
-.transcript__text {
-  font-family: var(--font-display);
-  font-variation-settings: 'opsz' 48, 'wght' 500;
-  font-size: 22px;
-  letter-spacing: -0.01em;
+
+.transcript__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-sub);
+  background: var(--bg-deep);
+  border: 1px solid var(--hairline);
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+.transcript__clear:hover {
   color: var(--ink);
-  min-height: 1.4em;
+  border-color: var(--accent);
+  background: var(--surface-hi);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.transcript__clear:active {
+  transform: scale(0.97);
+}
+
+.transcript__clear-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.transcript__text {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink);
+  min-height: 2.2em;
   word-break: break-word;
 }
+
 .transcript__caret {
   display: inline-block;
-  width: 0.55em;
-  height: 1em;
+  width: 2px;
+  height: 1.2em;
   background: var(--accent);
-  vertical-align: -0.1em;
-  margin-left: 4px;
-  animation: blink 1s steps(2) infinite;
+  vertical-align: -0.16em;
+  margin-left: 3px;
+  animation: blink-caret 1s steps(2) infinite;
 }
 
-/* Empty state (sin cámara) */
-.empty-state {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 32px;
-  background: var(--bg-deeper);
-  text-align: center;
-  z-index: 5;
-}
-.empty-state[hidden] { display: none; }
-
-.empty-state__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-  color: var(--danger);
-  text-transform: uppercase;
-  margin: 0;
-}
-.empty-state__glyph {
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 96, 'wght' 700;
-  font-size: clamp(80px, 18vw, 140px);
-  line-height: 1;
-  color: var(--ink);
-}
-.empty-state__title {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  color: var(--ink-mid);
-  max-width: 28ch;
-  margin: 0;
-}
-.empty-state__hint {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--ink-faint);
-  margin: 0;
-}
+/* ── Empty State styles are in overlays/empty-state.css ─────────────────── */

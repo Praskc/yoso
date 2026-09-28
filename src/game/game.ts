@@ -78,6 +78,8 @@ export class GameManager {
     window.dispatchEvent(new CustomEvent('yoso:juego', { detail }))
   }
 
+  private historialPalabras: string[] = []
+
   constructor() {
     this.elObjetivo    = document.getElementById('letra-objetivo')!
     this.elFeedback    = document.getElementById('feedback-mensaje')!
@@ -86,6 +88,46 @@ export class GameManager {
     this.elProgreso    = document.getElementById('progreso-texto')!
     this.elProgresoBar = document.getElementById('progreso-bar')!
     this.elImagenPista = document.getElementById('imagen-pista') as HTMLImageElement
+
+    window.addEventListener('yoso:juego:saltar', () => this.omitirPalabra())
+    window.addEventListener('yoso:juego:anterior', () => this.palabraAnterior())
+    window.addEventListener('yoso:juego:siguiente', () => this.siguientePalabra())
+  }
+
+  public omitirPalabra(): void {
+    if (!this.activo || this.bloqueado) return
+    this.racha = 0
+    this._emitir({ tipo: 'omitida', palabra: this.palabraActual })
+    clearTimeout(this.timerPista)
+    this.elImagenPista.classList.remove('visible')
+    this._setFeedback('PALABRA OMITIDA', 'warn')
+    this.bloqueado = true
+    window.setTimeout(() => { if (this.activo) this._nuevaPalabra() }, 300)
+  }
+
+  public palabraAnterior(): void {
+    if (!this.activo) return
+    if (this.historialPalabras.length === 0) return
+    const prev = this.historialPalabras.pop()!
+    if (this.palabraActual && this.palabraActual !== prev) {
+      this.pool.push(this.palabraActual)
+    }
+    clearTimeout(this.timerPista)
+    this.elImagenPista.classList.remove('visible')
+    this.bloqueado = false
+    this.letraIdx = 0
+    this.errores = 0
+    this.palabraActual = prev
+    this._emitir({ tipo: 'intentos', errores: 0 })
+    this._renderPalabra()
+    this._renderProgreso()
+  }
+
+  public siguientePalabra(): void {
+    if (!this.activo) return
+    clearTimeout(this.timerPista)
+    this.elImagenPista.classList.remove('visible')
+    this._nuevaPalabra()
   }
 
   public async activar(): Promise<void> {
@@ -114,49 +156,75 @@ export class GameManager {
       : this._letraIncorrecta(letra)
   }
 
+  public getLetraEsperada(): string {
+    if (!this.palabraActual || this.letraIdx >= this.palabraActual.length) return ''
+    return this.palabraActual[this.letraIdx]
+  }
+
+  public onLetraDetectada(letra: string, confianza: number): void {
+    if (!this.activo || this.bloqueado) return
+    if (letra === '-' || letra === ' ' || letra === BORRAR) return
+    const esperada = this.getLetraEsperada()
+    if (letra === esperada) {
+      this._setFeedback(`DETECTADA "${letra}" (${Math.round(confianza * 100)}%) · MANTÉN LA SEÑA`, 'success')
+    }
+  }
+
   private async _cargarPool(): Promise<void> {
     const { minLen, maxLen } = NIVELES[this.nivelIdx]
     try {
       const ctrl = new AbortController()
-      const timer = window.setTimeout(() => ctrl.abort(), 3000)
+      const timer = window.setTimeout(() => ctrl.abort(), 7000)
       const longitudes: number[] = []
       for (let n = minLen; n <= maxLen; n++) longitudes.push(n)
 
-      // datamuse sp= solo acepta longitud exacta, pedimos una por cada valor del rango
+      // Datamuse sp= acepta longitud exacta con comodines ?, v=es para vocabulario en español
       const respuestas = await Promise.all(longitudes.map(n =>
-        fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=200`, { signal: ctrl.signal })
+        fetch(`https://api.datamuse.com/words?sp=${'?'.repeat(n)}&v=es&max=100`, { signal: ctrl.signal })
           .then(r => r.ok ? r.json() as Promise<{ word: string }[]> : [])
           .catch(() => [] as { word: string }[])
       ))
       window.clearTimeout(timer)
 
-      const filtradas = respuestas.flat()
-        .map(d => d.word.toUpperCase())
-        .filter(w =>
-          w.length >= minLen &&
-          w.length <= maxLen &&
-          /^[A-Z]+$/.test(w) &&
-          !/TH|CK|WH|GH/.test(w)   // patrones exclusivos del inglés
-        )
+      // Normalizar tildes y caracteres en español para el abecedario dactilológico (A-Z)
+      const palabrasSet = new Set<string>()
+      respuestas.flat().forEach(d => {
+        const limpia = (d.word || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toUpperCase()
+          .trim()
+
+        if (
+          limpia.length >= minLen &&
+          limpia.length <= maxLen &&
+          /^[A-Z]+$/.test(limpia) &&
+          !/TH|CK|WH|GH/.test(limpia)
+        ) {
+          palabrasSet.add(limpia)
+        }
+      })
+
+      const filtradas = Array.from(palabrasSet)
 
       for (let i = filtradas.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [filtradas[i], filtradas[j]] = [filtradas[j], filtradas[i]]
       }
 
-      if (filtradas.length < 5) throw new Error('Pool insuficiente')
+      if (filtradas.length < 5) throw new Error('Pool insuficiente de Datamuse')
       this.pool = filtradas
       this._emitir({ tipo: 'fuente', fuente: 'datamuse' })
 
     } catch (err) {
-      console.warn('[GameManager] Datamuse falló, usando banco local:', err)
+      console.warn('[GameManager] Datamuse no disponible, usando banco local:', err)
       const nivel = this.nivelIdx + 1
       this.pool = [...(BANCO[nivel] ?? BANCO[1])].sort(() => Math.random() - 0.5)
       this._emitir({ tipo: 'fuente', fuente: 'local' })
-      this._setFeedback('SIN CONEXIÓN — MODO LOCAL', 'warn')
+      this._setFeedback('BANCO LOCAL ACTIVO', 'warn')
       window.setTimeout(() => {
         if (this.activo && !this.bloqueado) this._setFeedback('HAZ LA SEÑA...', 'idle')
-      }, 2000)
+      }, 1500)
     }
   }
 
@@ -166,6 +234,11 @@ export class GameManager {
     this.bloqueado = false
     this.letraIdx  = 0
     this.elNivel.textContent = NIVELES[this.nivelIdx].label
+
+    if (this.palabraActual && (!this.historialPalabras.length || this.historialPalabras[this.historialPalabras.length - 1] !== this.palabraActual)) {
+      this.historialPalabras.push(this.palabraActual)
+      if (this.historialPalabras.length > 40) this.historialPalabras.shift()
+    }
 
     if (this.pool.length === 0) {
       this._cargarPool().then(() => this._nuevaPalabra())

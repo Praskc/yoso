@@ -57,6 +57,8 @@ export class YOSOApp {
     this._ctxLuz = this._canvasLuz.getContext('2d', { willReadFrequently: true })!
 
     document.addEventListener('visibilitychange', () => this._alCambiarVisibilidad())
+    document.getElementById('app')?.setAttribute('data-mode', this.modo)
+    document.body.setAttribute('data-mode', this.modo)
     this._vincularEventos()
   }
 
@@ -124,10 +126,38 @@ export class YOSOApp {
         stream = await navigator.mediaDevices.getUserMedia(constraints)
       } catch (err) {
         const domErr = err as DOMException
-        if (domErr.name === 'NotAllowedError' || domErr.name === 'PermissionDeniedError') {
-          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), true)
+
+        let estadoPermiso: 'granted' | 'denied' | 'prompt' = 'prompt'
+        try {
+          if (navigator.permissions && navigator.permissions.query) {
+            const perm = await navigator.permissions.query({ name: 'camera' as any })
+            estadoPermiso = perm.state
+            perm.onchange = () => {
+              if (perm.state === 'granted') {
+                this.ui.ocultarEstadoVacio()
+                void this._iniciarCamara()
+              }
+            }
+          }
+        } catch {
+          // Permissions API query no soportado para camera en este browser
+        }
+
+        const errName = domErr.name || ''
+        const errMsg  = (domErr.message || '').toLowerCase()
+
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+          // Si el estado en el navegador sigue siendo 'prompt', o el mensaje es por dismiss/cancel/closed,
+          // significa que el usuario cerró el pop-up (le dio a la X) y NO seleccionó "Bloquear".
+          // En este caso el navegador permite relanzar el pop-up al hacer clic en "Abrir ventana de permiso".
+          const fueDescartado = estadoPermiso === 'prompt' || errMsg.includes('dismiss') || errMsg.includes('cancel')
+          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), fueDescartado ? 'dismissed' : 'denied')
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), 'not-found')
+        } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), 'in-use')
         } else {
-          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), false)
+          this.ui.mostrarEstadoVacio(domErr, () => void this._iniciarCamara(), 'other')
         }
         return
       }
@@ -238,6 +268,9 @@ export class YOSOApp {
 
         if (pestaña !== this.modo) {
           this.modo = pestaña
+          document.getElementById('app')?.setAttribute('data-mode', pestaña)
+          document.body.setAttribute('data-mode', pestaña)
+
           this.ui.limpiarTexto()
           this.ui.limpiarSena()
           this.motor.reiniciar(true)
@@ -245,12 +278,18 @@ export class YOSOApp {
         }
       })
     })
+
+    document.getElementById('topbar-btn-onboarding')?.addEventListener('click', () => {
+      void this.ui.mostrarOnboarding(true)
+    })
   }
 
   private _alDetectarLetra(letra: string, confianza: number, latencia: number, esIzquierda: boolean): void {
     this.ui.actualizarPrediccion(letra, confianza, latencia, esIzquierda)
     if (this.modo === 'aprendizaje') {
       letra !== '-' ? this.ui.resaltarSena(letra) : this.ui.limpiarSena()
+    } else if (this.modo === 'entrenamiento') {
+      this.juego.onLetraDetectada(letra, confianza)
     }
   }
 

@@ -1,5 +1,6 @@
 /* ============================================================================
-   SPLASH · Pantalla de carga con entrada escalonada
+   SPLASH SCREEN (v6 — Apéndice A.5)
+   Wordmark Display Gigante · Tip en --ink-mid · Categoría en Mono --warm
    ============================================================================ */
 
 #splash-screen {
@@ -9,96 +10,151 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-deeper);
-  transition: opacity var(--dur-slow) var(--ease-out),
-              transform var(--dur-slow) var(--ease-out);
+  padding: var(--space-6);
+  background: var(--bg-canvas);
+  transition: opacity 350ms var(--ease-out);
 }
+
 #splash-screen.is-hidden {
   opacity: 0;
-  transform: scale(1.015);
   pointer-events: none;
 }
 
-.splash-inner {
+.splash-card {
+  width: min(480px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
   text-align: center;
+  gap: var(--space-6);
 }
 
-/* Status: aparece primero */
-.splash-status {
-  display: inline-flex;
+/* ── Wordmark Display Gigante ──────────────────────────────────────────── */
+.splash-id {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.28em;
-  color: var(--ink-sub);
-  text-transform: uppercase;
-  margin-bottom: 36px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 0ms both;
-}
-.splash-status::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  animation: pulse 1.6s var(--ease-out) infinite;
-  flex-shrink: 0;
-}
-.splash-status[data-error="true"] { color: var(--danger); }
-.splash-status[data-error="true"]::before {
-  background: var(--danger);
-  box-shadow: 0 0 8px var(--danger);
-  animation: none;
+  gap: 2px;
 }
 
-/* Wordmark: el plato fuerte */
-.splash-wordmark {
+.splash-name {
   font-family: var(--font-brand);
   font-variation-settings: 'opsz' 96, 'wght' 800;
-  font-size: clamp(88px, 16vw, 148px);
-  line-height: 0.88;
-  letter-spacing: -0.055em;
+  font-size: clamp(64px, 14vw, 96px);
+  letter-spacing: -0.05em;
+  line-height: 0.9;
   color: var(--ink);
-  animation: splash-wordmark-in 480ms var(--ease-out) 60ms both;
+  user-select: none;
 }
 
-/* Slogan */
-.splash-slogan {
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 48, 'wght' 400;
-  font-style: italic;
-  font-size: 17px;
-  color: var(--ink-sub);
-  margin-top: 22px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 160ms both;
+.splash-sub {
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  color: var(--ink-mid);
+  letter-spacing: 0.04em;
 }
 
-/* Meta */
-.splash-meta {
+/* ── Loader ────────────────────────────────────────────────────────────── */
+.splash-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  background: #192A4B;
+  border: 1px solid #3A4D96;
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(10, 18, 38, 0.5);
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.splash-spin {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5B8BD5;
+  box-shadow: 0 0 8px #5B8BD5;
+  animation: pulse-signal 1.5s var(--ease-out) infinite;
+}
+
+.splash-step {
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.32em;
-  color: var(--ink-faint);
-  margin-top: 12px;
-  animation: splash-fade-up var(--dur-base) var(--ease-out) 220ms both;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #C8D5F0;
+  text-transform: uppercase;
 }
 
-/* Keyframes */
-@keyframes splash-wordmark-in {
-  from { opacity: 0; transform: translateY(16px) scaleY(0.96); }
-  to   { opacity: 1; transform: translateY(0) scaleY(1); }
+.splash-step[data-error="true"] {
+  color: #F87171;
+  font-weight: 700;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .splash-status,
-  .splash-wordmark,
-  .splash-slogan,
-  .splash-meta { animation: none; }
-  #splash-screen { transition: opacity 160ms linear; }
+.splash-step[data-error="true"] ~ .splash-spin,
+.splash-loader:has(.splash-step[data-error="true"]) .splash-spin {
+  background: #F87171;
+  box-shadow: 0 0 10px #F87171;
+}
+
+/* ── Tip Card con Drenaje de 4s ────────────────────────────────────────── */
+.splash-tip {
+  width: 100%;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(11, 17, 32, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.splash-tip-cat {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--warm);
+  text-transform: uppercase;
+}
+
+.splash-tip-body {
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  line-height: 1.55;
+  color: var(--ink-mid);
+  margin: 0;
+  min-height: 3.2em;
+}
+
+.splash-tip-n {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+  color: var(--ink-sub);
+  align-self: flex-end;
+}
+
+.splash-tip-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--bg-deep);
+}
+
+.splash-drain {
+  height: 100%;
+  background: var(--warm);
+  width: 100%;
+  transform-origin: left;
+}
+
+@keyframes drain-bar {
+  0%   { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
 }

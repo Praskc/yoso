@@ -3,11 +3,11 @@
   "private": true,
   "version": "3.0.0",
   "type": "module",
-  "packageManager": "pnpm@11.1.2",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc && vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0 --port 3000",
+    "lint": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -25,10 +25,8 @@
     "@mediapipe/tasks-vision": "0.10.35",
     "onnxruntime-web": "1.25.1"
   },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "^0.25.0",
-      "protobufjs": ">=7.5.8"
-    }
+  "overrides": {
+    "esbuild": "^0.25.0",
+    "protobufjs": ">=7.5.8"
   }
 }
