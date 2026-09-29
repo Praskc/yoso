@@ -181,28 +181,35 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 
 ```
 ├── src/
-│   ├── core/
-│   │   ├── app.ts              # Orquestador: pipeline Tasks-Vision, ROI, visibilidad, luminosidad
-│   │   └── main.ts             # Entry point + registro del Service Worker
-│   ├── engine/
-│   │   ├── inference.ts        # Motor IA: preprocesado, softmax, filtros, buffer circular de votos
-│   │   └── types.ts            # Interfaces TypeScript del motor
-│   ├── game/
-│   │   └── game.ts             # Motor de gamificación, 300 palabras, 5 niveles, eventos yoso:juego
-│   ├── lib/
-│   │   └── signs.ts            # Diagramas SVG del alfabeto (perspectiva observador)
-│   ├── ui/
-│   │   ├── index.ts            # RenderizadorUI: orquesta todos los paneles
-│   │   ├── hud.ts              # HUD de predicción, métricas de mano y estado
-│   │   ├── output.ts           # Panel traductor: letra, buffer, stream de confianza
-│   │   ├── panel-left.ts       # Indicador live de cámara activa
-│   │   ├── game-panel.ts       # Panel entrenamiento: constelación de niveles, historial
-│   │   ├── learn.ts            # Modo aprendizaje: grid del alfabeto con estado visto/activo
-│   │   ├── splash.ts           # Pantalla de carga y estado vacío
-│   │   ├── toast.ts            # Notificaciones no intrusivas
-│   │   ├── onboarding.ts       # Tutorial de primera visita
-│   │   ├── debug.ts            # Panel de debug, métricas, top-3
-│   │   └── site-footer.ts      # Footer con créditos
+│   ├── app/
+│   │   ├── bootstrap.ts        # Composition root: adapters, servicios y montaje de la UI
+│   │   └── main.ts             # Entry point: purge de estado legacy + bootstrap()
+│   ├── domain/                 # Reglas puras: sin DOM, sin red, sin I/O
+│   │   ├── alphabet.ts         # Clases del modelo, comandos y letras visibles
+│   │   ├── recognition/        # Features, softmax, centroides, filtros, buffer de votos
+│   │   └── game/               # Sesión de juego, niveles y banco de palabras
+│   ├── application/            # Casos de uso: orquestan dominio y puertos
+│   │   ├── ports/              # camera, classifier, clock, event-bus, storage, word-source…
+│   │   ├── events/             # AppEvents: contrato tipado del bus
+│   │   ├── recognition/        # RecognitionService: detección → voto → confirmación
+│   │   ├── capture/            # RecognitionSession: cámara, tracker y frame loop
+│   │   ├── game/               # GameController: feedback, temporizadores y puntaje
+│   │   ├── modes/              # ModeController: traductor / entrenamiento / aprendizaje
+│   │   └── onboarding/         # OnboardingService: versión vista del tutorial
+│   ├── infrastructure/         # Adaptadores: browser, MediaPipe, ONNX, storage, palabras
+│   │   ├── camera/             # BrowserCamera (getUserMedia + permisos)
+│   │   ├── capture/            # FrameLoop (rVFC/rAF + FPS)
+│   │   ├── clock/              # PerformanceClock
+│   │   ├── lifecycle/          # purgeLegacyState (SW + caches + onboarding viejo)
+│   │   ├── mediapipe/          # MediaPipeHandTracker
+│   │   ├── onnx/               # OnnxModelSource + OnnxClassifier
+│   │   ├── storage/            # LocalStorageAdapter, MemoryStorage
+│   │   └── words/              # Datamuse, banco local y fallback
+│   ├── presentation/           # Vista: componentes suscritos al bus, sin reglas de negocio
+│   │   ├── components/         # hud, output-panel, game-panel, learn-panel, splash, onboarding…
+│   │   └── assets/             # sign-uris, hand-connections
+│   ├── shared/
+│   │   └── typed-event-bus.ts  # Implementación del bus de eventos tipado
 │   └── styles/
 │       ├── tokens.css          # Variables OKLCH, tipografía, espaciado
 │       ├── base.css            # Reset y estilos base
@@ -269,7 +276,7 @@ cp ml/model/YOSO.onnx public/
 cp ml/model/Centroides.json public/
 ```
 
-> **Consistencia crítica:** `ml/extract.py`, `ml/train.py` y `src/engine/inference.ts` implementan el mismo pipeline de normalización anatómica. Cualquier cambio debe aplicarse en los tres. El umbral de descarte de mano colapsada (`dp <= 1e-4`) está alineado entre `ml/features.py` y `src/engine/inference.ts`.
+> **Consistencia crítica:** `ml/extract.py`, `ml/train.py` y `src/domain/recognition/extract-features.ts` implementan el mismo pipeline de normalización anatómica. Cualquier cambio debe aplicarse en los tres. El umbral de descarte de mano colapsada (`dp <= 1e-4`) está alineado entre `ml/features.py` y `src/domain/recognition/extract-features.ts`.
 
 > **Datasets configurables:** `ml/config.py` lee la variable de entorno `YOSO_DATA_ROOTS` (rutas separadas por `;` en Windows o `:` en Unix).
 
@@ -341,7 +348,11 @@ Implicancias:
 
 ## Changelog
 
-### v3.1: UI modular y performance frontend (actual)
+### v3.2: arquitectura limpia (actual)
+
+`src/` reorganizado en capas: `domain/` (reglas puras de reconocimiento y juego), `application/` (casos de uso + puertos + eventos tipados), `infrastructure/` (adaptadores de browser, MediaPipe, ONNX, storage y palabras), `presentation/` (componentes de vista suscritos al bus) y `app/` (composition root). El acoplamiento entre capas pasa por puertos (`Camera`, `Classifier`, `Clock`, `EventBus`, `HandTracker`, `FrameScheduler`, `RecognitionModelSource`, `Storage`, `WordSource`), así que la lógica de reconocimiento y de juego ya no depende del DOM, de `localStorage` ni de MediaPipe/ONNX. La comunicación interna usa un `TypedEventBus<AppEvents>` en lugar de eventos `CustomEvent` globales, y los componentes de UI reciben sus dependencias por constructor (`Splash`, `Onboarding`, `GamePanel`, `SiteFooter`, `ModeTabs`, `CameraOverlay`). `mode-tabs` y `camera-overlay` reemplazan el cableado manual de pestañas y el dibujo de landmarks que vivían en el orquestador. Se añaden 21 tests nuevos (jsdom para presentación) y `vitest` como runner. Comportamiento y estilos intactos.
+
+### v3.1: UI modular y performance frontend
 
 CSS refactorizado en módulos (`src/styles/components/`, `modes/`, `overlays/`) con tokens OKLCH. Fuentes self-hosted via Fontsource (Bricolage Grotesque Variable + Geist Variable), eliminando la dependencia de Google Fonts. DOM write guards en HUD y PanelLeft: early-return cuando el valor no cambia (~30fps sin escrituras redundantes). Buffer cells cacheadas y coordenadas X precalculadas en OutputPanel, running sum para el promedio del stream. Eventos `yoso:juego` personalizados reemplazando MutationObserver en GamePanel. Service worker v12 simplificado a cache-first puro sin handlers CDN obsoletos. Licencia MIT.
 
