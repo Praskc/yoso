@@ -1,23 +1,18 @@
-const NIVELES_META = [
-  { label: 'NOVATO',   roman: 'I',   desc: 'Adquisición elemental (3–4 letras)', req: 3,  idx: 0 },
-  { label: 'BÁSICO',   roman: 'II',  desc: 'Rango intermedio (4–5 letras)',     req: 5,  idx: 1 },
-  { label: 'MEDIO',    roman: 'III', desc: 'Fluidez de transición (5–6 letras)', req: 7,  idx: 2 },
-  { label: 'AVANZADO', roman: 'IV',  desc: 'Precisión léxica (6–7 letras)',     req: 9,  idx: 3 },
-  { label: 'MAESTRO',  roman: 'V',   desc: 'Dominio dactilológico (7–9 letras)',req: 12, idx: 4 },
-]
+import { signURI } from '../lib/signs'
 
-// Nodos para viewBox 0 0 340 80
-const STAR_NODES = [
-  { x: 34,  y: 48 },  // I: Novato
-  { x: 102, y: 28 },  // II: Básico
-  { x: 170, y: 52 },  // III: Medio
-  { x: 238, y: 24 },  // IV: Avanzado
-  { x: 306, y: 42 },  // V: Maestro
+// Nodos para viewBox 0 0 340 104 — Mayor altura, amplitud y legibilidad de texto
+const CONSTELLATION_NODES = [
+  { x: 36,  y: 64, roman: 'I',   label: 'NOVATO' },
+  { x: 102, y: 28, roman: 'II',  label: 'BÁSICO' },
+  { x: 170, y: 66, roman: 'III', label: 'MEDIO' },
+  { x: 238, y: 28, roman: 'IV',  label: 'AVANZADO' },
+  { x: 304, y: 60, roman: 'V',   label: 'MAESTRO' },
 ]
 
 export class GamePanel {
   private historyList:      HTMLElement | null = null
   private palabrasHistorial: string[] = []
+  private puntosTotales = 0
   private nivelActual = 0
 
   constructor() {
@@ -39,51 +34,69 @@ export class GamePanel {
       <div class="word-card">
         <div class="word-card__head">
           <span class="word-card__label">deletrea</span>
-          <span class="word-card__source"><span class="word-card__source-icon">ai</span>banco local</span>
         </div>
         <div class="word" id="letra-objetivo" aria-live="polite"></div>
         <div class="attempts">
-          <span class="attempts__label">intentos</span>
-          <span class="attempts__dots"><span class="attempts__dot"></span><span class="attempts__dot"></span><span class="attempts__dot"></span></span>
+          <span class="attempts__label">fallos: <strong id="intentos-count">0/3</strong></span>
+          <span class="attempts__dots">
+            <span class="attempts__dot"></span>
+            <span class="attempts__dot"></span>
+            <span class="attempts__dot"></span>
+          </span>
           <span class="attempts__hint">3 max</span>
         </div>
         <div class="word-card__progress">
           <div class="word-card__progress-label">
-            <span>progreso del nivel</span>
-            <span class="word-card__progress-count" id="progreso-texto">0<span class="denom">/10</span></span>
+            <span>palabras para subir</span>
+            <span class="word-card__progress-count" id="progreso-texto">0 / 3</span>
           </div>
           <div class="word-card__progress-bar"><div class="word-card__progress-fill" id="progreso-bar"></div></div>
         </div>
         <div class="word-card__actions">
-          <button class="game-action-btn" id="btn-palabra-prev" type="button" aria-label="Palabra anterior">
+          <button class="game-action-btn game-action-btn--prev" id="btn-palabra-prev" type="button" aria-label="Palabra anterior">
             <svg class="game-action-btn__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             <span>anterior</span>
           </button>
-          <button class="game-action-btn" id="btn-palabra-next" type="button" aria-label="Siguiente palabra">
+          <button class="game-action-btn game-action-btn--skip" id="btn-palabra-skip" type="button" aria-label="Omitir palabra" data-tooltip="Pierde la racha">
+            <span>omitir</span>
+          </button>
+          <button class="game-action-btn game-action-btn--next" id="btn-palabra-next" type="button" aria-label="Siguiente palabra">
             <span>siguiente</span>
             <svg class="game-action-btn__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
       </div>
-      <div class="game-feedback fb-idle" id="feedback-mensaje" role="status">haz la seña…</div>
+      <div class="word-card__feedback-strip fb-idle" id="feedback-mensaje" role="status" style="display:none!important">
+        <span class="feedback-dot"></span>
+        <span class="feedback-text"></span>
+      </div>
       <img id="imagen-pista" hidden alt="" style="display:none!important"/>
       <div class="levels" id="levels-block">
         <div class="levels__head">
-          <span class="levels__label">progresión</span>
-          <span class="levels__sub" id="levels-sub">nivel 1 / 5</span>
+          <span class="levels__label">PROGRESIÓN DE NIVEL</span>
         </div>
         <div class="levels__map">
-          <svg class="levels__svg" id="levels-svg" viewBox="0 0 340 80" preserveAspectRatio="xMidYMid meet">
+          <svg class="levels__svg" id="levels-svg" viewBox="0 0 340 104" preserveAspectRatio="xMidYMid meet">
             ${this.buildConstellation(0)}
           </svg>
         </div>
       </div>
       <div class="history">
         <div class="history__head">
-          <span class="history__label">palabras de la sesión</span>
-          <span class="history__count" id="history-count">0</span>
+          <div class="history__title-group">
+            <span class="history__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </span>
+            <span class="history__label">PALABRAS DE LA SESIÓN</span>
+          </div>
+          <span class="history__summary" id="history-summary"></span>
         </div>
-        <div class="history__list" id="history-list"></div>
+        <div class="history__list" id="history-list">
+          <div class="ghost-chip" id="ghost-chip-1"><span class="ghost-hand">🖐</span><span class="ghost-slots"><span></span><span></span><span></span></span></div>
+          <div class="ghost-chip" id="ghost-chip-2"><span class="ghost-hand">🖐</span><span class="ghost-slots"><span></span><span></span><span></span></span></div>
+          <div class="ghost-chip" id="ghost-chip-3"><span class="ghost-hand">🖐</span><span class="ghost-slots"><span></span><span></span><span></span></span></div>
+          <span class="ghost-caption" id="ghost-caption">se deletrea aquí</span>
+        </div>
       </div>
     `
 
@@ -91,48 +104,71 @@ export class GamePanel {
     this.vincularEventos()
   }
 
-  private buildConstellation(nivelIdx: number): string {
+  private buildConstellation(nivelIdx: number, celebrateNew = false): string {
+    // Curva Bézier continua y suave a través de los 5 puntos con mayor amplitud
+    const fullPathD = `M 36 64 C 62 64, 76 28, 102 28 C 128 28, 144 66, 170 66 C 196 66, 212 28, 238 28 C 264 28, 278 60, 304 60`
+
+    // Tramos Bézier suaves correspondientes a cada nivel
+    const activeSubPaths = [
+      '', // Nivel 0
+      `M 36 64 C 62 64, 76 28, 102 28`, // Nivel 1 (Básico)
+      `M 36 64 C 62 64, 76 28, 102 28 C 128 28, 144 66, 170 66`, // Nivel 2 (Medio)
+      `M 36 64 C 62 64, 76 28, 102 28 C 128 28, 144 66, 170 66 C 196 66, 212 28, 238 28`, // Nivel 3 (Avanzado)
+      `M 36 64 C 62 64, 76 28, 102 28 C 128 28, 144 66, 170 66 C 196 66, 212 28, 238 28 C 264 28, 278 60, 304 60`, // Nivel 4 (Maestro)
+    ]
+
     let svg = ''
 
-    // Guías de constelación astronómica (coordenadas tenues)
-    svg += `<g class="lvl-guides" opacity="0.3">
-      <line x1="10" y1="20" x2="330" y2="20" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
-      <line x1="10" y1="40" x2="330" y2="40" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
-      <line x1="10" y1="60" x2="330" y2="60" stroke="var(--hairline)" stroke-width="0.5" stroke-dasharray="3 6"/>
-    </g>`
+    // 1. Camino curvo base suave (tenue)
+    svg += `<path class="cst-path-base" d="${fullPathD}" fill="none" />`
 
-    // Líneas entre nodos
-    for (let i = 0; i < STAR_NODES.length - 1; i++) {
-      const p1 = STAR_NODES[i]
-      const p2 = STAR_NODES[i + 1]
-      const done = i < nivelIdx
-      const lineClass = done ? 'lvl-line lvl-line--done' : 'lvl-line'
-      const dash = done ? '' : 'stroke-dasharray="3 4"'
-
-      svg += `<line class="${lineClass}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" ${dash}/>`
+    // 2. Curva encendida en tono cálido hasta el nivel alcanzado
+    const activeD = activeSubPaths[Math.min(nivelIdx, activeSubPaths.length - 1)]
+    if (activeD) {
+      svg += `<path class="cst-path-active" d="${activeD}" fill="none" />`
     }
 
-    // Nodos celestes
-    for (let i = 0; i < STAR_NODES.length; i++) {
-      const p = STAR_NODES[i]
-      const done    = i < nivelIdx
-      const current = i === nivelIdx
-      const nodeClass = done ? 'lvl-node lvl-node--done' : current ? 'lvl-node lvl-node--current' : 'lvl-node lvl-node--locked'
-      const labelClass = done ? 'lvl-label lvl-label--done' : current ? 'lvl-label lvl-label--current' : 'lvl-label lvl-label--locked'
+    // 3. Nodos estelares
+    CONSTELLATION_NODES.forEach((p, i) => {
+      const isDone = i < nivelIdx
+      const isCurr = i === nivelIdx
+      const isCelebrated = isCurr && celebrateNew
 
-      svg += `<g class="lvl-station" data-level="${i}">`
-      if (current) {
-        svg += `<circle class="lvl-node--current-glow" cx="${p.x}" cy="${p.y}" r="14"/>`
-        svg += `<circle class="lvl-node--current-orbit" cx="${p.x}" cy="${p.y}" r="9"/>`
+      svg += `<g class="cst-node-group" data-level="${i}">`
+
+      if (isCurr) {
+        // Halo pulsante y onda de choque si subió de nivel
+        svg += `<circle class="cst-halo ${isCelebrated ? 'cst-halo--burst' : ''}" cx="${p.x}" cy="${p.y}" r="20"/>`
       }
-      svg += `<circle class="${nodeClass}" cx="${p.x}" cy="${p.y}" r="${current ? 6.5 : done ? 5 : 4}"/>`
-      if (current) {
-        svg += `<circle cx="${p.x}" cy="${p.y}" r="2" fill="var(--warm)"/>`
+
+      if (isDone) {
+        // Nivel completado: Estrella dorada llena ★
+        svg += `
+          <circle class="cst-star-done-bg" cx="${p.x}" cy="${p.y}" r="12.5"/>
+          <path class="cst-star-icon" transform="translate(${p.x - 7.5}, ${p.y - 7.5}) scale(0.75)"
+            d="M 10 1 L 12.8 6.8 L 19 7.7 L 14.5 12.1 L 15.6 18.2 L 10 15.3 L 4.4 18.2 L 5.5 12.1 L 1 7.7 L 7.2 6.8 Z" fill="#E2D3B3"/>
+        `
+      } else if (isCurr) {
+        // Nivel actual: Azul acento luminoso con pop+bounce
+        svg += `
+          <circle class="cst-star-current ${isCelebrated ? 'cst-star-celebrate' : 'cst-pop'}" cx="${p.x}" cy="${p.y}" r="13"/>
+          <text class="cst-roman cst-roman--curr" x="${p.x}" y="${p.y + 4}" text-anchor="middle">${p.roman}</text>
+        `
+      } else {
+        // Niveles futuros: Estrellas vacías con contorno fino y numeral romano
+        svg += `
+          <circle class="cst-star-future" cx="${p.x}" cy="${p.y}" r="11.5"/>
+          <text class="cst-roman cst-roman--future" x="${p.x}" y="${p.y + 4}" text-anchor="middle">${p.roman}</text>
+        `
       }
-      const labelY = p.y > 40 ? p.y - 12 : p.y + 18
-      svg += `<text class="${labelClass}" x="${p.x}" y="${labelY}" text-anchor="middle">${NIVELES_META[i].label.toLowerCase()}</text>`
+
+      // Nombre del rango siempre visible y con excelente contraste/tamaño
+      const labelY = p.y > 40 ? p.y + 25 : p.y - 14
+      const titleClass = isCurr ? 'cst-label cst-label--curr' : isDone ? 'cst-label cst-label--done' : 'cst-label cst-label--future'
+      svg += `<text class="${titleClass}" x="${p.x}" y="${labelY}" text-anchor="middle">${p.label}</text>`
+
       svg += `</g>`
-    }
+    })
 
     return svg
   }
@@ -140,6 +176,9 @@ export class GamePanel {
   private vincularEventos(): void {
     document.getElementById('btn-palabra-prev')?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('yoso:juego:anterior'))
+    })
+    document.getElementById('btn-palabra-skip')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('yoso:juego:saltar'))
     })
     document.getElementById('btn-palabra-next')?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('yoso:juego:siguiente'))
@@ -151,7 +190,7 @@ export class GamePanel {
         case 'nivel':
           if (typeof d.nivelIdx === 'number' && d.nivelIdx !== this.nivelActual) {
             this.nivelActual = d.nivelIdx
-            this.actualizarConstelacion(d.nivelIdx)
+            this.actualizarConstelacion(d.nivelIdx, true)
           }
           break
         case 'palabra':
@@ -164,53 +203,76 @@ export class GamePanel {
         case 'intentos':
           if (typeof d.errores === 'number') this.setIntentos(d.errores)
           break
-        case 'fuente':
-          this.setFuente(d.fuente === 'datamuse' ? 'datamuse' : 'banco local')
-          break
       }
     })
   }
 
-  private actualizarConstelacion(nivelIdx: number): void {
+  private actualizarConstelacion(nivelIdx: number, celebrate = false): void {
     const svg = document.getElementById('levels-svg')
-    if (!svg) return
-    svg.innerHTML = this.buildConstellation(nivelIdx)
-
-    const sub = document.getElementById('levels-sub')
-    if (sub) sub.textContent = `nivel ${nivelIdx + 1} / 5`
+    if (svg) svg.innerHTML = this.buildConstellation(nivelIdx, celebrate)
   }
 
   private agregarPalabraHistorial(palabra: string): void {
-    this.palabrasHistorial.push(palabra)
+    const limpia = palabra.trim().toUpperCase()
+    this.palabrasHistorial.push(limpia)
+    const pts = limpia.length * 10
+    this.puntosTotales += pts
+
     if (!this.historyList) return
 
-    const countEl = document.getElementById('history-count')
-    if (countEl) countEl.textContent = String(this.palabrasHistorial.length)
+    // Desplazar / remover un ghost chip en cada nueva palabra completada
+    const count = this.palabrasHistorial.length
+    const ghost = document.getElementById(`ghost-chip-${count}`)
+    if (ghost) {
+      ghost.classList.add('ghost-chip--displace')
+      setTimeout(() => ghost.remove(), 240)
+    }
+    if (count >= 3) {
+      document.getElementById('ghost-caption')?.remove()
+    }
+
+    // Header sin ruido en 0, activado en primera palabra: "✓ 1 · 40 pts"
+    const summaryEl = document.getElementById('history-summary')
+    if (summaryEl) {
+      summaryEl.textContent = `✓ ${this.palabrasHistorial.length} · ${this.puntosTotales} pts`
+      summaryEl.classList.add('is-active')
+    }
 
     const prev = this.historyList.querySelector('.history__word--latest')
     if (prev) prev.classList.remove('history__word--latest')
 
-    const span = document.createElement('span')
-    span.className = 'history__word history__word--latest'
-    span.textContent = palabra.toLowerCase()
-    this.historyList.appendChild(span)
+    // Chip real con animación de deslizamiento + bounce
+    const firstLetter = limpia[0] || 'A'
+    const signSrc = signURI(firstLetter)
+
+    const chip = document.createElement('div')
+    chip.className = 'history-chip history-chip--enter history__word--latest'
+    chip.innerHTML = `
+      <img class="history-chip__sign" src="${signSrc}" alt="${firstLetter}" aria-hidden="true" />
+      <span class="history-chip__check">✓</span>
+      <span class="history-chip__word">${limpia.toLowerCase()}</span>
+      <span class="history-chip__pts">+${pts}</span>
+    `
+    // Insertar al inicio de la lista desplazando a los ghosts
+    this.historyList.insertBefore(chip, this.historyList.firstChild)
   }
 
   private setRacha(racha: number): void {
     const el = document.getElementById('racha-valor')
-    if (el) el.textContent = String(racha)
+    if (!el) return
+    const prev = parseInt(el.textContent || '0', 10)
+    el.textContent = String(racha)
+    if (racha === 0 && prev > 0) {
+      el.classList.remove('racha-drop')
+      void el.offsetWidth
+      el.classList.add('racha-drop')
+    }
   }
 
   private setIntentos(errores: number): void {
+    const count = document.getElementById('intentos-count')
+    if (count) count.textContent = `${errores}/3`
     const dots = document.querySelectorAll<HTMLElement>('.attempts__dot')
     dots.forEach((dot, i) => dot.classList.toggle('attempts__dot--used', i < errores))
-  }
-
-  private setFuente(fuente: string): void {
-    const el = document.querySelector('.word-card__source')
-    if (el) {
-      const icon = fuente === 'datamuse' ? 'api' : 'ai'
-      el.innerHTML = `<span class="word-card__source-icon">${icon}</span>${fuente}`
-    }
   }
 }

@@ -1,5 +1,5 @@
 const ONBOARD_KEY = 'yosoOnboarded'
-const ONBOARD_VERSION = 'v10_manifesto'
+const ONBOARD_VERSION = 'v12_manifesto'
 
 export interface OnboardingStep {
   badge: string
@@ -13,24 +13,24 @@ export class Onboarding {
   private pasoActual = 0
   private readonly pasos: OnboardingStep[] = [
     {
-      badge: 'PASO 1 DE 3 · LOS 3 MODOS',
-      title: '¿Qué puedes hacer en cada modo?',
-      desc: 'Elige arriba el modo que quieras usar según lo que busques practicar:',
+      badge: 'MODOS DE USO',
+      title: 'Elige cómo practicar',
+      desc: 'Tres formas integradas de interactuar con el alfabeto LSC:',
       points: [
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
           title: 'Aprendizaje',
-          text: 'Aprende el abecedario de señas (<strong>deletreo o fingerspelling</strong>) letra por letra, viendo la posición exacta de cada una.',
+          text: 'Consulta el abecedario de señas y la <strong>postura exacta de cada letra</strong> con ejemplos visuales.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
           title: 'Entrenamiento',
-          text: '¡Un juego de práctica! Te da <strong>palabras al azar</strong> para que las deletrees con tus manos y ganes agilidad.',
+          text: 'Supera retos con <strong>palabras aleatorias</strong> para ganar velocidad y agilidad con tus manos.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>`,
           title: 'Traductor (Modo libre)',
-          text: 'Deletrea <strong>lo que tú quieras libremente</strong> frente a la cámara y el sistema lo irá escribiendo en la pantalla.',
+          text: 'Deletrea <strong>frases completas libremente</strong> frente a la cámara con transcripción en vivo.',
         },
       ],
       previewHtml: `
@@ -39,42 +39,42 @@ export class Onboarding {
             <div class="onb-mode-card is-active">
               <span class="mode-tag mode-tag--free">Libre</span>
               <strong>Traductor</strong>
-              <small>Deletrea cualquier frase</small>
+              <small>Transcripción en vivo</small>
             </div>
             <div class="onb-mode-card">
               <span class="mode-tag mode-tag--game">Juego</span>
               <strong>Entrenamiento</strong>
-              <small>Palabras al azar</small>
+              <small>Retos por tiempo</small>
             </div>
             <div class="onb-mode-card">
               <span class="mode-tag mode-tag--learn">Guía</span>
               <strong>Aprendizaje</strong>
-              <small>Aprende el abecedario</small>
+              <small>Catálogo de señas</small>
             </div>
           </div>
-          <span class="onb-preview-caption">Cambia de modo cuando quieras desde la barra de arriba</span>
+          <span class="onb-preview-caption">Cambia de modo al instante desde la barra superior</span>
         </div>
       `,
     },
     {
-      badge: 'PASO 2 DE 3 · TU MANO EN LA CÁMARA',
-      title: 'Cómo poner tu mano',
-      desc: 'Para que la cámara te entienda rápido y clarito:',
+      badge: 'CALIBRACIÓN Y POSTURA',
+      title: 'Colocación de tu mano',
+      desc: 'Recomendaciones para una detección instantánea y sin demoras:',
       points: [
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`,
-          title: 'Dentro del recuadro',
-          text: 'Pon tu mano en el <strong>centro del cuadro</strong> que aparece en el video de la cámara.',
+          title: 'Dentro del encuadre',
+          text: 'Ubica tu palma en el <strong>centro del recuadro guía</strong> de la cámara.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg>`,
-          title: 'Distancia y luz',
-          text: 'Quédate a medio metro de la pantalla (donde se vea bien tu mano) y con <strong>buena luz</strong>.',
+          title: 'Distancia e iluminación',
+          text: 'Sitúate a medio metro de la pantalla con <strong>luz clara y uniforme</strong> sobre tu mano.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11V4a1.5 1.5 0 0 1 3 0v6"/><path d="M10 7.5V3a1.5 1.5 0 0 1 3 0v4.5"/><path d="M13 8V4.5a1.5 1.5 0 0 1 3 0V9"/><path d="M16 10.5V6a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-5.6-3.8L5 11.2a1.5 1.5 0 0 1 2.4-1.6L9 12"/></svg>`,
-          title: 'Cualquiera de las dos manos',
-          text: 'Puedes usar tu <strong>mano derecha o la izquierda</strong>, la app reconoce ambas por igual.',
+          title: 'Uso ambidiestro',
+          text: 'Puedes deletrear con tu <strong>mano derecha o izquierda</strong>; la red neuronal reconoce ambas.',
         },
       ],
       previewHtml: `
@@ -90,29 +90,29 @@ export class Onboarding {
               </svg>
             </div>
           </div>
-          <span class="onb-preview-caption">Mantén tu mano dentro del área de la cámara</span>
+          <span class="onb-preview-caption">Mantén la palma de frente y centrada en el visor</span>
         </div>
       `,
     },
     {
-      badge: 'PASO 3 DE 3 · CÓMO SE ESCRIBEN LAS LETRAS',
-      title: '¡No tienes que tocar nada!',
-      desc: 'Las letras se escriben solitas mientras haces las señas:',
+      badge: 'PASO 3 · DETECCIÓN',
+      title: '¿Cómo se escribe cada letra?',
+      desc: 'Solo haz la seña con tu mano y la app la escribirá por ti:',
       points: [
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
-          title: 'Haz la seña y quédate quieto',
-          text: 'Forma la letra con tu mano y <strong>mantenla quieta un segundo</strong> frente a la cámara.',
+          title: '1. Haz la seña',
+          text: 'Forma la letra con tu mano y <strong>déjala quieta un instante</strong> frente a la cámara.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
-          title: 'Las barritas se llenan',
-          text: 'Verás unas <strong>barritas que se van llenando</strong> mientras mantienes la mano quieta.',
+          title: '2. Mira la barra',
+          text: 'Verás que la <strong>barra de carga se llena</strong> rápidamente mientras mantienes la postura.',
         },
         {
           icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
-          title: '¡Se escribe sola!',
-          text: 'Cuando las barritas se completan, la letra <strong>se escribe solita en la pantalla</strong>. Sin presionar botones.',
+          title: '3. ¡Letra escrita!',
+          text: 'Al completarse la barra, la letra <strong>se añade al texto en la pantalla</strong> sin tocar nada.',
         },
       ],
       previewHtml: `
@@ -133,7 +133,7 @@ export class Onboarding {
               <span class="onb-demo-cell onb-cell-fill"></span>
               <span class="onb-demo-cell onb-cell-pulse"></span>
             </div>
-            <span class="onb-demo-counter">MANO QUIETA · SE ESCRIBE SOLA</span>
+            <span class="onb-demo-counter">MANTÉN LA SEÑA FIJA HASTA LLENAR LA BARRA</span>
           </div>
         </div>
       `,
@@ -174,10 +174,63 @@ export class Onboarding {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
 
-        <!-- Marco con ilustración de la seña Y vista desde el dorso del usuario -->
+        <!-- Marco con ilustración oficial de la seña Y (Deaf-Alphabet-Y con paleta YOSO) -->
         <div class="onb-og-frame" aria-hidden="true">
           <span class="onb-og-tag-y">Y</span>
-          <img src="/hand_sign_y.jpg" alt="Seña Y en LSC" class="onb-og-hand-img" />
+          <div class="onb-og-hand-svg">
+            <svg width="240" height="175" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="yosoHandGrad" x1="10" y1="10" x2="110" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#93C5FD"/>
+                  <stop offset="40%" stop-color="#3B82F6"/>
+                  <stop offset="100%" stop-color="#1E3A8A"/>
+                </linearGradient>
+                <linearGradient id="yosoShadeGrad" x1="20" y1="40" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#0F172A" stop-opacity="0.9"/>
+                </linearGradient>
+                <linearGradient id="yosoLineGrad" x1="10" y1="10" x2="100" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#E0F2FE"/>
+                  <stop offset="100%" stop-color="#93C5FD"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Silueta Principal de la Mano en Seña Y -->
+              <!-- 1. Meñique extendido (izquierda) -->
+              <path d="M 23 8 C 16 10 13 20 18 30 L 25 43 C 27 46 31 46 33 43 L 38 32 C 40 27 38 20 34 14 C 30 9 26 7 23 8 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M 20 17 L 31 13" stroke="url(#yosoLineGrad)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M 23 25 L 34 21" stroke="url(#yosoLineGrad)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M 26 34 L 37 30" stroke="url(#yosoLineGrad)" stroke-width="1.8" stroke-linecap="round"/>
+
+              <!-- 2. Dedo Anular flexionado -->
+              <path d="M 37 28 C 37 18 45 13 52 14 C 59 15 62 22 61 30 L 59 44 C 57 48 48 48 44 45 L 37 38 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M 42 22 C 47 21 53 22 57 23" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M 40 33 C 46 32 52 33 56 34" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+
+              <!-- 3. Dedo Medio flexionado -->
+              <path d="M 58 24 C 58 14 66 10 74 11 C 81 12 84 18 83 26 L 81 42 C 79 46 70 47 66 44 L 58 35 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M 64 19 C 69 18 75 19 79 20" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M 62 30 C 67 29 73 30 77 31" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+
+              <!-- 4. Dedo Índice flexionado -->
+              <path d="M 79 22 C 80 14 88 10 95 12 C 101 14 104 20 102 28 L 98 44 C 95 48 87 48 83 44 L 79 32 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M 85 19 C 90 19 95 20 99 22" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M 83 30 C 88 30 93 31 96 33" stroke="url(#yosoLineGrad)" stroke-width="1.6" stroke-linecap="round"/>
+
+              <!-- 5. Palma Central y Dorso -->
+              <path d="M 28 42 C 22 50 25 68 32 78 L 44 94 L 74 94 L 88 78 C 96 66 98 52 94 42 L 80 44 C 74 48 64 48 58 44 C 52 48 42 47 38 43 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+
+              <!-- 6. Pulgar extendido (derecha) -->
+              <path d="M 90 42 C 96 36 104 28 111 25 C 117 23 120 28 116 36 C 110 48 102 60 94 68 L 86 60 C 88 52 89 46 90 42 Z" fill="url(#yosoHandGrad)" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M 103 33 C 107 38 111 44 113 49" stroke="url(#yosoLineGrad)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M 96 44 C 100 48 104 54 106 59" stroke="url(#yosoLineGrad)" stroke-width="1.8" stroke-linecap="round"/>
+
+              <!-- Sombreado anatómico en pliegues de palma y muñeca -->
+              <path d="M 44 94 L 46 82 C 54 84 64 84 72 82 L 74 94 Z" fill="url(#yosoShadeGrad)" stroke="#38BDF8" stroke-width="1.5"/>
+              <path d="M 36 62 C 45 68 62 68 76 60" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+              <path d="M 40 73 C 48 78 60 78 70 72" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>
+            </svg>
+          </div>
         </div>
 
         <h2 class="onb-manifesto-title" id="manifesto-title">Deberías saber esto de YOSO</h2>

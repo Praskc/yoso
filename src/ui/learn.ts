@@ -10,6 +10,7 @@ export class AlphabetLearn {
   private letraIdx: number = 0
   private countEl: HTMLElement | null = null
   private letterEl: HTMLElement | null = null
+  private _prevFirma = ''
 
   constructor() {
     this.render()
@@ -39,12 +40,10 @@ export class AlphabetLearn {
             <svg class="learn-action-btn__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
-        <p class="learn-detail__hint">haz la seña frente a la cámara o navega por el catálogo</p>
       </div>
       <div class="alphabet-section">
         <div class="alphabet-section__head">
-          <p class="alphabet-header">Alfabeto LSC · 27 letras</p>
-          <span class="alphabet-header__sub">clic en celda para enfocar</span>
+          <p class="alphabet-header">Alfabeto LSC</p>
         </div>
         <div class="alphabet-grid" id="alphabet-grid" role="list">
           ${ALFABETO.map(l => `
@@ -78,9 +77,6 @@ export class AlphabetLearn {
       this.letraIdx = idx
       this.actual = ALFABETO[idx]
       this.vistas.add(this.actual)
-      if (this.letterEl) {
-        this.letterEl.textContent = this.actual
-      }
       this.repaint()
     }
   }
@@ -110,9 +106,6 @@ export class AlphabetLearn {
       this.letraIdx = idx
       this.actual = l
       this.vistas.add(l)
-      if (this.letterEl) {
-        this.letterEl.textContent = l
-      }
       this.repaint()
     }
   }
@@ -123,6 +116,13 @@ export class AlphabetLearn {
   }
 
   private repaint(): void {
+    // resaltar/limpiar llegan por frame de detección: solo repintar si la
+    // firma (letra activa + vistas) cambió de verdad.
+    const firma = `${this.actual ?? ''}|${this.vistas.size}`
+    if (firma === this._prevFirma) return
+    this._prevFirma = firma
+
+    if (this.letterEl && this.actual) this.letterEl.textContent = this.actual
     for (const cell of this.celdas) {
       const l = cell.dataset.letter!
       if (l === this.actual) {

@@ -68,14 +68,24 @@ export class DebugPanel {
     setBar('db-bar-dist', dist * 100)
     setText('db-dist', p.distancia != null ? p.distancia.toFixed(2) : '--')
     setText('db-distref', p.distRef != null ? p.distRef.toFixed(2) : '--')
-    const votos = p.bufferActual.length
+    let votos = 0
+    for (const s of p.bufferActual) {
+      if (s !== '' && s !== '-') votos++
+    }
     setText('db-votes', `${votos}/9`)
     setText('db-top3', p.topN.slice(0, 3).map(t => `${t.letra}:${(t.prob * 100).toFixed(0)}`).join(' '))
     const buffer = document.getElementById('db-buffer')
     if (buffer) {
-      buffer.innerHTML = Array.from({ length: 9 }, (_, i) =>
-        `<span data-active="${i < votos}"></span>`,
-      ).join('')
+      if (buffer.children.length !== 9) {
+        buffer.innerHTML = Array.from({ length: 9 }, () => '<span></span>').join('')
+      }
+      for (let i = 0; i < 9; i++) {
+        const child = buffer.children[i] as HTMLElement
+        const active = i < votos ? 'true' : 'false'
+        if (child.getAttribute('data-active') !== active) {
+          child.setAttribute('data-active', active)
+        }
+      }
     }
   }
 

@@ -8,6 +8,8 @@ import { PanelLeft }     from './panel-left'
 import { OutputPanel }   from './output'
 import { GamePanel }     from './game-panel'
 import { SiteFooter }    from './site-footer'
+import { AccessibilityModal } from './accessibility-modal'
+import { a11y }          from '../core/accessibility'
 import type { CargaDebug } from '../engine/types'
 
 export class RenderizadorUI {
@@ -19,6 +21,7 @@ export class RenderizadorUI {
   private readonly onboarding: Onboarding
   private readonly learn:      AlphabetLearn
   private readonly splash:     Splash
+  private readonly a11yModal:  AccessibilityModal
 
   constructor() {
     // PanelLeft y Output crean DOM antes que HUD, que bindea IDs en diferido.
@@ -32,16 +35,21 @@ export class RenderizadorUI {
     this.onboarding = new Onboarding()
     this.learn      = new AlphabetLearn()
     this.splash     = new Splash()
+    this.a11yModal  = new AccessibilityModal()
 
     window.addEventListener('yoso:letra', (e) => {
       const detail = (e as CustomEvent<{ letra: string; borrar: boolean }>).detail
       this.output.agregarLetra(detail.letra, detail.borrar)
+      if (!detail.borrar && detail.letra) {
+        a11y.notificarLetraCapturada(detail.letra)
+      }
     })
     window.addEventListener('yoso:texto-clear', () => this.output.limpiarTexto())
   }
 
   mensajeSplash(mensaje: string, esError = false): void        { this.splash.mensaje(mensaje, esError) }
   ocultarSplash(): void                                         { this.splash.ocultar() }
+  setLive(activo: boolean): void                                { this.panelLeft.setLive(activo) }
   mostrarEstadoVacio(err: DOMException | null, onReintentar: () => void, estado: import('./splash').TipoEstadoCamara | boolean = 'other'): void {
     this.splash.mostrarEstadoVacio(err, onReintentar, estado)
     this.panelLeft.setLive(false)
@@ -56,20 +64,47 @@ export class RenderizadorUI {
     this.hud.actualizarPrediccion(letra, confianza, latencia, esIzquierda)
     this.output.setLetra(letra)
     this.output.actualizarStream(confianza)
+    this.output.setMano(esIzquierda, confianza >= 0.82 ? 'good' : 'jitter')
+    if (confianza >= 0.82) {
+      this.output.setMensajeHumano('tu mano está perfecta', 'good')
+    } else {
+      this.output.setMensajeHumano('mantén la postura', 'warn')
+    }
   }
-  estadoMano(estado: string, esOptimo: boolean): void           { this.hud.estadoMano(estado, esOptimo) }
+  estadoMano(estado: string, esOptimo: boolean): void {
+    this.hud.estadoMano(estado, esOptimo)
+    if (!esOptimo) {
+      this.output.setMensajeHumano('mucha vibración — aquieta', 'warn')
+      this.output.setManoEstadoActual('jitter')
+    }
+  }
   limpiarMano(): void {
     this.hud.limpiarMano()
     this.output.setLetra('')
+    this.output.setMensajeHumano('pon tu mano aquí', 'idle')
+    this.output.setMano(null, 'idle')
+    this.output.actualizarStream(0)
   }
-  actualizarROI(fueraZona: boolean): void                       { this.hud.actualizarROI(fueraZona) }
+  actualizarROI(fueraZona: boolean): void {
+    this.hud.actualizarROI(fueraZona)
+    if (fueraZona) {
+      this.output.setMensajeHumano('fuera del recuadro', 'warn')
+      this.output.setManoEstadoActual('roi')
+    }
+  }
   limpiarROI(): void                                            { this.hud.limpiarROI() }
   agregarLetra(letra: string, borrar: boolean): void            { this.hud.agregarLetra(letra, borrar) }
   limpiarTexto(): void                                          { this.hud.limpiarTexto() }
 
   actualizarDebug(p: CargaDebug): void {
     this.debug.actualizar(p)
-    this.output.setBuffer(p.bufferActual.length, 9)
+    // bufferActual mide 9 siempre (padding con ''); los votos reales son
+    // las letras — '-' es frame descartado y no llena la barra.
+    let votos = 0
+    for (const s of p.bufferActual) {
+      if (s !== '' && s !== '-') votos++
+    }
+    this.output.setBuffer(votos, 9)
   }
   actualizarPerfFrame(mpMs: number, fps: number): void {
     this.debug.actualizarPerf(mpMs, fps)
@@ -82,6 +117,7 @@ export class RenderizadorUI {
   ocultarToast(id: string): void                                { this.toast.ocultar(id) }
 
   mostrarOnboarding(forzado = false): Promise<void>             { return this.onboarding.mostrar(forzado) }
+  mostrarAccesibilidad(): void                                  { this.a11yModal.open() }
 
   resaltarSena(letra: string): void                             { this.learn.resaltar(letra) }
   limpiarSena(): void                                           { this.learn.limpiar() }

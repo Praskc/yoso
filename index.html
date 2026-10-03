@@ -27,8 +27,10 @@
         <span class="splash-name">YOSO</span>
         <span class="splash-sub">You only sign once</span>
       </div>
+      <div class="loader-wrap">
+        <span class="loader"></span>
+      </div>
       <div class="splash-loader">
-        <span class="splash-spin" id="splash-spin"></span>
         <span class="splash-step" id="splash-step">Iniciando runtime…</span>
       </div>
       <div class="splash-tip">
@@ -97,6 +99,16 @@
         </button>
       </nav>
       <div class="topbar__actions">
+        <!-- Botón Accesibilidad Universal (Inspirado en la barra accesible) -->
+        <button class="topbar__btn-a11y" id="topbar-btn-a11y" data-a11y-trigger="true" type="button" aria-label="Menú de Accesibilidad" title="Opciones de Accesibilidad e Inclusión">
+          <svg viewBox="0 0 512 512" width="24" height="24">
+            <circle cx="256" cy="256" r="246" fill="#1D4ED8"/>
+            <circle cx="256" cy="256" r="212" stroke="#FFFFFF" stroke-width="24" fill="none"/>
+            <circle cx="256" cy="144" r="36" fill="#FFFFFF"/>
+            <path d="M136 182 C196 194 316 194 376 182 C386 180 392 195 382 205 C342 220 300 220 292 240 L292 300 L318 382 C323 398 303 408 292 393 L256 318 L220 393 C209 408 189 398 194 382 L220 300 L220 240 C212 220 170 220 130 205 C120 195 126 180 136 182 Z" fill="#FFFFFF"/>
+          </svg>
+        </button>
+
         <div class="topbar__pill-btn topbar__locale-pill" id="topbar-pill-action" role="status" title="Lengua de Señas Colombiana (LSC)">
           <svg class="topbar__flag" width="20" height="14" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Bandera de Colombia">
             <rect width="20" height="7" fill="#FCD116"/>
@@ -115,10 +127,16 @@
       <!-- Columna izquierda: video + transcripción -->
       <div id="feed-col">
         <div class="feed">
-          <span class="feed__live" data-state="off">
-            <span class="feed__live-dot"></span>
-            <span>en vivo</span>
-          </span>
+          <!-- Indicador sutil estilo LED webcam (grabando / cámara activa) en la esquina superior izquierda -->
+          <div class="feed__cam-led" id="feed-cam-led" data-state="off" title="Cámara apagada" aria-label="Cámara apagada">
+            <span class="feed__cam-dot"></span>
+          </div>
+
+          <!-- FPS solo como texto visible sin relleno ni borde en la esquina superior derecha -->
+          <div class="feed__fps-hud" id="feed-fps-hud" title="Rendimiento en tiempo real (FPS)">
+            <span class="feed__fps-hud-val" id="feed-fps-val">--</span>
+            <span class="feed__fps-hud-unit">FPS</span>
+          </div>
 
           <video class="input_video" autoplay muted playsinline></video>
           <canvas class="output_canvas"></canvas>
@@ -175,10 +193,6 @@
         <div id="transcript-block" class="transcript">
           <div class="transcript__head">
             <span class="transcript__label">transcripción</span>
-            <button class="transcript__clear btn btn--ghost" id="btn-clear" aria-label="Limpiar texto">
-              <svg class="transcript__clear-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
-              <span>limpiar</span>
-            </button>
           </div>
           <div class="transcript__text" id="final-text" aria-live="polite"><span class="transcript__caret"></span></div>
         </div>
