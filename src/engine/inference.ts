@@ -1,6 +1,3 @@
-// ============================================================================
-// INFERENCE.TS — Motor de inferencia YOSO
-// ============================================================================
 import * as ort from 'onnxruntime-web'
 import type { Punto, Lateralidad, MapaCentroides, OpcionesInicioInferencia, CargaDebug, ItemTop, Centroide } from './types'
 
@@ -13,13 +10,12 @@ export const BORRAR = '⌫'
 
 // ── Hiperparámetros ──────────────────────────────────────────────────────────
 const UMBRAL_CONFIANZA       = 0.82   // subido de 0.75 — filtra detecciones en zona gris por luz adversa
-const PESO_GEO_MAX           = 0.20   // penalización geométrica más agresiva
-const TAMANO_BUFFER          = 9      // más frames para consenso
-const VOTOS_NECESARIOS       = 7      // de 9 frames, 7 deben coincidir
+const PESO_GEO_MAX           = 0.20
+const TAMANO_BUFFER          = 9
+const VOTOS_NECESARIOS       = 7
 const TIEMPO_COOLDOWN_MS     = 800
 const COOLDOWN_MISMA_LETRA   = 1800
 const COOLDOWN_COMANDO_MS    = 400
-// Suma mínima de pesos para confirmar — más exigente
 const PESO_MINIMO_VOTOS      = VOTOS_NECESARIOS * UMBRAL_CONFIANZA  // 7 × 0.82 = 5.74
 const PUNTAS                 = [4, 8, 12, 16, 20] as const
 const IDX_DESCARTE           = -1
@@ -57,8 +53,10 @@ export class MotorInferencia {
   private _votosLleno  = false
   // Acumulador de pesos por letra — indexado por posición en ALFABETO
   private readonly _pesoPorLetra = new Float32Array(ALFABETO.length)
-  private ultimaLetra:           string = ''
-  private ultimoTiempoEscritura: number = 0
+  private ultimaLetra: string = ''
+  // -Infinity = "nunca se ha confirmado": con 0, la primera confirmación de un
+  // proceso recién iniciado caía dentro del cooldown y se perdía.
+  private ultimoTiempoEscritura: number = -Infinity
   private _procesando = false
 
   private cb!: OpcionesInicioInferencia['callbacks']
@@ -79,7 +77,6 @@ export class MotorInferencia {
       if (!this.centroides || letra === ' ' || letra === BORRAR) return null
       return this.centroides[letra.toLowerCase()] ?? null
     })
-    // Buffer de votos vacío
     this._votosLetras.fill(IDX_DESCARTE)
     this._votosPesos.fill(0)
     this._votosHead  = 0
@@ -97,7 +94,7 @@ export class MotorInferencia {
     this._procesando  = false
     if (forzar) {
       this.ultimaLetra           = ''
-      this.ultimoTiempoEscritura = 0
+      this.ultimoTiempoEscritura = -Infinity
     }
   }
 
@@ -147,11 +144,9 @@ export class MotorInferencia {
         this._top3Buf[2].letra = ALFABETO[i2]; this._top3Buf[2].prob = p2
       }
 
-      // Índice de la letra detectada en este frame (-1 si descarte)
       const idxDetectada  = letraDetectada === '-' ? IDX_DESCARTE : ALFABETO.indexOf(letraDetectada)
       const pesoDetectado = letraDetectada === '-' ? 0 : confianzaEfectiva
 
-      // Escritura O(1) en buffer circular
       this._votosLetras[this._votosHead] = idxDetectada
       this._votosPesos[this._votosHead]  = pesoDetectado
       this._votosHead = (this._votosHead + 1) % TAMANO_BUFFER
