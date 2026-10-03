@@ -12,7 +12,7 @@ const wrap = (body: string): string =>
   `<g transform="translate(80,0) scale(-1,1)" stroke="${C}" stroke-width="${SW}" stroke-linecap="round" stroke-linejoin="round">` +
   body + `</g></svg>`
 
-// Dedo extendido — cónico con bezier, nudillo PIP y uña
+// Dedo extendido
 // Centros: meñique=18 · anular=30 · medio=42 · índice=54
 const fu = (cx: number): string =>
   `<path d="M${cx-7},62 C${cx-8},50 ${cx-5.5},26 ${cx-4},18 Q${cx},13 ${cx+4},18 C${cx+5.5},26 ${cx+8},50 ${cx+7},62 Z" ` +
@@ -31,24 +31,24 @@ const fuR = (cx: number, deg: number): string => {
   )
 }
 
-// Dedo doblado — stub orgánico
+// Dedo doblado
 const fh = (cx: number): string =>
   `<path d="M${cx-6},62 C${cx-7},58 ${cx-7},53 ${cx-5},50 Q${cx},48 ${cx+5},50 C${cx+7},53 ${cx+7},58 ${cx+6},62 Z" ` +
   `fill="${FD}" stroke="${C}" stroke-width="${SW2}"/>`
 
-// Palma — orgánica con nudillos MCP y crease
+// Palma
 const pm =
   `<path d="M8,62 C8,60 9,57 11,55 Q18,51 25,55 Q30,50 37,55 Q42,49 49,54 Q54,51 61,56 C64,58 66,60 65,63 L63,78 Q61,90 50,91 L22,91 Q12,89 10,78 Z" ` +
   `fill="${FM}" stroke="${C}" stroke-width="${SW2}"/>` +
   `<path d="M14,74 Q38,69 62,72" fill="none" stroke="rgba(56,189,248,0.2)" stroke-width="1.2"/>` +
   `<path d="M24,56 L22,65 M36,55 L34,65 M48,55 L46,65" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="1"/>`
 
-// Muñeca — cilíndrica
+// Muñeca
 const wr =
   `<path d="M20,89 C16,89 13,92 13,96 Q13,100 40,100 Q67,100 67,96 C67,92 64,89 60,89" ` +
   `fill="${FM}" stroke="${C}" stroke-width="${SW2}"/>`
 
-// Puño cerrado — nudillos en arco
+// Puño cerrado
 const fist =
   `<path d="M10,38 Q17,32 24,35 Q30,30 37,33 Q43,29 50,33 Q57,30 64,35 C69,38 71,44 71,56 L71,72 Q71,87 58,90 L18,90 Q8,87 8,72 L8,56 C8,44 9,39 10,38 Z" ` +
   `fill="${FM}" stroke="${C}" stroke-width="2"/>`
