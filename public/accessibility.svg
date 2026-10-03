@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <circle cx="256" cy="256" r="246" fill="#1D4ED8"/>
+  <circle cx="256" cy="256" r="212" stroke="#FFFFFF" stroke-width="24" fill="none"/>
+  <!-- Cabeza -->
+  <circle cx="256" cy="144" r="36" fill="#FFFFFF"/>
+  <!-- Brazos extendidos, cuerpo y piernas -->
+  <path d="M136 182 C196 194 316 194 376 182 C386 180 392 195 382 205 C342 220 300 220 292 240 L292 300 L318 382 C323 398 303 408 292 393 L256 318 L220 393 C209 408 189 398 194 382 L220 300 L220 240 C212 220 170 220 130 205 C120 195 126 180 136 182 Z" fill="#FFFFFF"/>
+</svg>

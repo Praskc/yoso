@@ -1,0 +1,432 @@
+/* ============================================================================
+   YOSO v3 · Panel de Accesibilidad e Inclusión (Widget Completo)
+   ============================================================================ */
+
+/* Botón Disparador en Topbar (Cuadrado con bordes suaves) */
+.topbar__btn-a11y {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #1D4ED8;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(29, 78, 216, 0.5);
+  transition: transform 0.16s var(--ease-out), box-shadow 0.16s var(--ease-out);
+  overflow: hidden;
+}
+
+.topbar__btn-a11y svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.topbar__btn-a11y:hover,
+.topbar__btn-a11y.is-active {
+  transform: scale(1.08);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.8);
+}
+
+/* Panel Desplegable Widget */
+.a11y-widget-panel {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  z-index: 99999;
+  width: 320px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.97);
+  transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out), visibility 0.18s;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.a11y-widget-panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.a11y-wcard {
+  display: flex;
+  flex-direction: column;
+  color: #1E293B;
+  font-family: var(--font-body);
+}
+
+/* Header */
+.a11y-wcard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.a11y-wcard__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-wcard__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.a11y-wcard__title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.a11y-wcard__close {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.a11y-wcard__close:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* Body */
+.a11y-wcard__body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* 1. Steppers de Tipografía */
+.a11y-wcard__steppers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #F1F5F9;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.a11y-stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.a11y-stepper-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.a11y-stepper-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+.a11y-step-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0F172A;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.a11y-step-btn:hover {
+  background: #3B82F6;
+  color: #FFFFFF;
+  border-color: #3B82F6;
+}
+
+.a11y-step-val {
+  min-width: 26px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: #2563EB;
+}
+
+/* 2 & 3. Secciones y Grid Cards */
+.a11y-wsec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.a11y-wsec__title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.01em;
+}
+
+.a11y-grid-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.a11y-wsec:nth-of-type(3) .a11y-grid-cards {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.a11y-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.a11y-card-btn:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+
+.a11y-card-btn.is-active {
+  background: #EFF6FF;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 1px #2563EB, 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.a11y-card-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.a11y-card-icon.font-h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  color: #2563EB;
+}
+
+.a11y-card-txt {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.2;
+}
+
+.a11y-card-btn.is-active .a11y-card-txt {
+  color: #1D4ED8;
+}
+
+/* 4. Ocultar Widget por Horas */
+.a11y-hide-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.a11y-time-btn {
+  padding: 6px 4px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.a11y-time-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* Footer */
+.a11y-wcard__footer {
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+}
+
+.a11y-btn-reset-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.a11y-btn-reset-all:hover {
+  background: #FEF2F2;
+  border-color: #F87171;
+  color: #DC2626;
+}
+
+.a11y-reset-icon {
+  font-size: 14px;
+}
+
+/* ============================================================================
+   Efectos Globales Aplicados al DOM
+   ============================================================================ */
+
+:root {
+  --a11y-scale: 1;
+  --a11y-line-height: 1.4;
+  --a11y-letter-spacing: 0em;
+}
+
+body {
+  font-size: calc(13px * var(--a11y-scale));
+  line-height: var(--a11y-line-height);
+  letter-spacing: var(--a11y-letter-spacing);
+}
+
+/* Alto Contraste */
+.a11y-high-contrast {
+  --bg: #000000 !important;
+  --surface: #040404 !important;
+  --surface-elevated: #0e0e0e !important;
+  --border: #FCD116 !important;
+  --border-strong: #FCD116 !important;
+  --ink: #FFFFFF !important;
+  --ink-sub: #E2E8F0 !important;
+}
+
+.a11y-high-contrast .def-card {
+  border: 2px solid #FCD116 !important;
+  box-shadow: 0 0 14px rgba(252, 209, 22, 0.4) !important;
+}
+
+/* Invertir Colores */
+.a11y-invert {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+.a11y-invert img,
+.a11y-invert video,
+.a11y-invert canvas {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* Escala de Grises */
+.a11y-grayscale {
+  filter: grayscale(100%) !important;
+}
+
+/* Resaltar Enlaces */
+.a11y-highlight-links a,
+.a11y-highlight-links button,
+.a11y-highlight-links .nav__link {
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+  outline: 2px solid #FCD116 !important;
+}
+
+/* Resaltar Títulos */
+.a11y-highlight-headings h1,
+.a11y-highlight-headings h2,
+.a11y-highlight-headings h3,
+.a11y-highlight-headings .topbar__title,
+.a11y-highlight-headings .def-sec-label {
+  background: #FCD116 !important;
+  color: #000000 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+}
+
+/* Fuente Legible */
+.a11y-readable-font * {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+}
+
+/* Ocultar Imágenes */
+.a11y-hide-images img,
+.a11y-hide-images .splash-id,
+.a11y-hide-images .topbar__logo-badge {
+  opacity: 0.1 !important;
+}
+
+/* Sin Animaciones */
+.a11y-no-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Cursor Grande */
+.a11y-big-cursor,
+.a11y-big-cursor * {
+  cursor: default !important;
+}
+
+/* Flash Visual en Pantalla */
+.a11y-screen-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  border: 5px solid #4ADE80;
+  box-shadow: inset 0 0 32px rgba(74, 222, 128, 0.6);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s var(--ease-out);
+}
+
+.a11y-screen-flash.is-active {
+  opacity: 1;
+}
