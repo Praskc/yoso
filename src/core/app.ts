@@ -5,6 +5,7 @@ import { MotorInferencia, BORRAR }                       from '../engine/inferen
 import { GameManager }                                   from '../game/game'
 import { RenderizadorUI }                                from '../ui'
 import type { Lateralidad, Punto }                       from '../engine/types'
+import type { WorkerInMsg, WorkerOutMsg }                from '../workers/protocol'
 
 const LIMITE_SUPERIOR  = 0.10
 const LIMITE_IZQUIERDO = 0.15
@@ -30,6 +31,16 @@ export class YOSOApp {
 
   private _pausado = false
   private _iniciandoCamara = false
+  private _stream: MediaStream | null = null
+
+  // Pipeline dual: GPU/main-thread cuando hay WebGL útil, worker+CPU cuando no.
+  private _landmarker:       HandLandmarker | null = null
+  private _worker:           Worker | null = null
+  private _workerListo       = false
+  private _workerOcupado     = false
+  private _cambiandoAWorker  = false
+  private _fpsActual         = 0
+  private readonly _muestrasMp: number[] = []
 
   private readonly _canvasLuz: HTMLCanvasElement
   private readonly _ctxLuz:    CanvasRenderingContext2D
@@ -57,6 +68,8 @@ export class YOSOApp {
     this._ctxLuz = this._canvasLuz.getContext('2d', { willReadFrequently: true })!
 
     document.addEventListener('visibilitychange', () => this._alCambiarVisibilidad())
+    // pagehide cubre cierre/recarga/navegación: libera la cámara para que el indicador del SO se apague.
+    window.addEventListener('pagehide', () => this._detenerCamara())
     document.getElementById('app')?.setAttribute('data-mode', this.modo)
     document.body.setAttribute('data-mode', this.modo)
     this._vincularEventos()
@@ -118,8 +131,8 @@ export class YOSOApp {
       // pointer:coarse + maxTouchPoints detecta táctiles incluyendo iPadOS 13+, que reporta UA "Macintosh"
       const esMobil = matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0
       const constraints: MediaStreamConstraints = esMobil
-        ? { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 360 } }, audio: false }
-        : { video: { width: { ideal: 640 }, height: { ideal: 360 } }, audio: false }
+        ? { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }
+        : { video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }
 
       let stream: MediaStream
       try {
@@ -163,25 +176,35 @@ export class YOSOApp {
       }
 
       this.ui.ocultarEstadoVacio()
+      this._stream = stream
 
-      const vision = await FilesetResolver.forVisionTasks('/mediapipe')
-      const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: '/mediapipe/hand_landmarker.task',
-          delegate: 'GPU'
-        },
-        runningMode: 'VIDEO',
-        numHands: 1,
-        minHandDetectionConfidence: 0.80,
-        minHandPresenceConfidence:  0.70,
-        minTrackingConfidence:      0.70
-      })
+      // MediaPipe con delegate 'GPU' degrada silenciosamente a WASM/CPU-cuando-WebGL-falta:
+      // sin check previo pagarías ese degradado EN el hilo principal. Sin WebGL,
+      // arranca directo en worker. Con WebGL, el monitor adaptativo decide luego.
+      if (this._gpuDisponible()) {
+        const vision = await FilesetResolver.forVisionTasks('/mediapipe')
+        this._landmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: '/mediapipe/hand_landmarker.task',
+            delegate: 'GPU'
+          },
+          runningMode: 'VIDEO',
+          numHands: 1,
+          minHandDetectionConfidence: 0.80,
+          minHandPresenceConfidence:  0.70,
+          minTrackingConfidence:      0.70
+        })
+      } else {
+        await this._crearWorker()
+        this.ui.mostrarToast('modo-compat', 'Modo compatibilidad: detección en segundo hilo (CPU)', 'info', 4000)
+      }
 
       this._drawingUtils = new DrawingUtils(this.ctx)
 
       this.video.srcObject = stream
       await new Promise<void>(resolve => { this.video.onloadedmetadata = () => resolve() })
       await this.video.play()
+      this.ui.setLive(true)
 
       let ultimoVideoTime = -1
 
@@ -196,6 +219,7 @@ export class YOSOApp {
         programar()
         if (this._pausado || this.video.readyState < 2) return
         if (this.video.currentTime === ultimoVideoTime) return
+        ultimoVideoTime = this.video.currentTime
 
         const ahora = performance.now()
 
@@ -208,13 +232,42 @@ export class YOSOApp {
         const fps = this._fpsFill >= 2
           ? (this._fpsFill - 1) / ((ahora - oldest) / 1000)
           : 0
+        this._fpsActual = fps
 
-        const t0       = performance.now()
-        const resultado = handLandmarker.detectForVideo(this.video, ahora)
-        const mpMs     = performance.now() - t0
+        if (this._worker) {
+          // CPU/worker: un ImageBitmap transferable por frame, sin copias.
+          // Timing de detección e inferencia vuelven en el mensaje 'resultado'.
+          if (this._workerListo && !this._workerOcupado) {
+            this._workerOcupado = true
+            // El stream llega a 720/1080p (constraints HD): reducir el bitmap
+            // antes de transferir mantiene liviano el puente al worker.
+            createImageBitmap(this.video, { resizeWidth: 640, resizeHeight: 360, resizeQuality: 'low' })
+              .then(bitmap => this._worker!.postMessage({ type: 'frame', bitmap, timestamp: ahora }, [bitmap]))
+              .catch(() => { this._workerOcupado = false })
+          }
+          return
+        }
 
-        this._alRecibirResultados(resultado)
-        this.ui.actualizarPerfFrame(mpMs, fps)
+        if (this._landmarker) {
+          const t0       = performance.now()
+          const resultado = this._landmarker.detectForVideo(this.video, ahora)
+          const mpMs     = performance.now() - t0
+
+          // Monitor adaptativo: si la mediana del costo de detección supera 22 ms,
+          // este dispositivo está corriendo MediaPipe en CPU dentro del main thread
+          // (GPU delegate silencioso degradado). Se conmuta en caliente a worker.
+          if (this._muestrasMp.length < 120) {
+            this._muestrasMp.push(mpMs)
+            if (this._muestrasMp.length === 120) {
+              const s = [...this._muestrasMp.slice(20)].sort((a, b) => a - b)
+              const mediana = s[Math.floor(s.length / 2)]
+              if (mediana > 22) this._activarModoWorker()
+            }
+          }
+
+          this._alRecibirResultados(resultado)
+          this.ui.actualizarPerfFrame(mpMs, fps)
+        }
       }
       programar()
     } finally {
@@ -224,11 +277,105 @@ export class YOSOApp {
 
   private _alCambiarVisibilidad(): void {
     this._pausado = document.hidden
+    this.ui.setLive(!document.hidden)
     if (document.hidden) {
       this.motor.reiniciar(true)
       this.ui.estadoListo('idle')
       this.ui.limpiarMano()
     }
+  }
+
+  private _detenerCamara(): void {
+    this._stream?.getTracks().forEach(track => track.stop())
+    this._stream = null
+    this._worker?.terminate()
+    this._worker = null
+    this._workerListo = false
+    this._pausado = true
+  }
+
+  // El GPU delegate de MediaPipe degrada silenciosamente a CPU cuando WebGL falta;
+  // medir la plataforma antes de crear el landmarker evita pagar ese degradado en main.
+  private _gpuDisponible(): boolean {
+    try {
+      const canvas = document.createElement('canvas')
+      return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'))
+    } catch {
+      return false
+    }
+  }
+
+  private _crearWorker(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const w = new Worker(new URL('../workers/engine.worker.ts', import.meta.url), { type: 'module' })
+      const timeout = window.setTimeout(
+        () => reject(new Error('El worker de detección no respondió a tiempo')),
+        20000
+      )
+
+      w.onmessage = (e: MessageEvent<WorkerOutMsg>) => {
+        const m = e.data
+        if (m.type === 'ready') {
+          window.clearTimeout(timeout)
+          this._workerListo = true
+          resolve()
+          return
+        }
+        if (m.type === 'error') {
+          this._workerOcupado = false
+          if (!this._workerListo) {
+            window.clearTimeout(timeout)
+            reject(new Error(m.message))
+          } else {
+            console.error('[Worker detección]', m.message)
+          }
+          return
+        }
+        this._workerOcupado = false
+        this._alRecibirResultados(this._aResultadoWorker(m))
+        this.ui.actualizarPerfFrame(m.mpMs, this._fpsActual)
+      }
+
+      w.onerror = (e) => {
+        this._workerOcupado = false
+        if (!this._workerListo) {
+          window.clearTimeout(timeout)
+          reject(new Error(e.message))
+        } else {
+          console.error('[Worker detección] onerror', e.message)
+        }
+      }
+
+      this._worker = w
+      const initMsg: WorkerInMsg = { type: 'init' }
+      w.postMessage(initMsg)
+    })
+  }
+
+  private _activarModoWorker(): void {
+    if (this._worker || this._cambiandoAWorker) return
+    this._cambiandoAWorker = true
+    this._crearWorker()
+      .then(() => {
+        this._landmarker?.close()
+        this._landmarker = null
+        this.motor.reiniciar(true)
+        this.ui.mostrarToast('modo-compat', 'Dispositivo lento detectado: detección movida a segundo hilo', 'warn', 4500)
+      })
+      .catch((err) => {
+        this._cambiandoAWorker = false
+        this._worker = null
+        this._workerListo = false
+        console.error('[YOSO] Fallback a worker falló; se mantiene hilo principal:', err)
+      })
+  }
+
+  private _aResultadoWorker(m: Extract<WorkerOutMsg, { type: 'resultado' }>): HandLandmarkerResult {
+    if (!m.landmarks) return { landmarks: [], handedness: [] } as unknown as HandLandmarkerResult
+    return {
+      landmarks:  [m.landmarks],
+      handedness: [[{ categoryName: m.lateralidad ?? 'Right', score: m.score }]]
+    } as unknown as HandLandmarkerResult
   }
 
   private _verificarLuminosidad(): void {
@@ -245,7 +392,7 @@ export class YOSOApp {
       if (oscuro !== this._toastLuzVivo) {
         this._toastLuzVivo = oscuro
         oscuro
-          ? this.ui.mostrarToast('luz', 'Poca luz detectada: busca una fuente de luz frente a ti para mejorar la precisión.', 'warn', 0)
+          ? this.ui.mostrarToast('luz', 'Enciende una luz frontal para que la cámara detecte tus señas con mayor precisión y velocidad.', 'light', 0)
           : this.ui.ocultarToast('luz')
       }
     } catch {
@@ -314,9 +461,9 @@ export class YOSOApp {
     const ac = this.canvas.width, al = this.canvas.height
     this.ctx.save()
     this.ctx.clearRect(0, 0, ac, al)
-    this.ctx.translate(ac, 0)
-    this.ctx.scale(-1, 1)
-    this.ctx.drawImage(this.video, 0, 0, ac, al)
+    // El video NO se dibuja aquí: .input_video ya está espejado por CSS
+    // (transform: scaleX(-1)) y el canvas es un overlay transparente que
+    // solo carga el esqueleto — evita el blit de ~900KB/frame en main.
 
     if (resultado.landmarks.length > 0) {
       const rawLandmarks = resultado.landmarks[0]
@@ -325,8 +472,6 @@ export class YOSOApp {
         label: resultado.handedness[0][0].categoryName as 'Left' | 'Right',
         score: resultado.handedness[0][0].score
       }
-
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
 
       const displayLandmarks = rawLandmarks.map(lm => ({ x: 1 - lm.x, y: lm.y, z: lm.z, visibility: lm.visibility }))
       this._drawingUtils!.drawConnectors(displayLandmarks, HandLandmarker.HAND_CONNECTIONS,
@@ -364,7 +509,6 @@ export class YOSOApp {
       void this.motor.procesar(puntos, lateralidad, jitter)
 
     } else {
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
       this.ui.estadoListo('idle')
       this.ui.limpiarROI()
       this.ui.limpiarMano()
