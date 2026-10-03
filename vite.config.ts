@@ -109,14 +109,46 @@ const excluirWasmRollup: Plugin = {
   }
 }
 
+// Elimina referencias a sourcemaps inexistentes de paquetes como @mediapipe
+// (el warning "Failed to load source map" en dev) y sirve .map vacíos si se piden.
+const fixMissingSourceMaps: Plugin = {
+  name: 'fix-missing-sourcemaps',
+  enforce: 'pre',
+  transform(code, id) {
+    if (id.includes('@mediapipe') || id.includes('onnxruntime-web') || id.includes('node_modules')) {
+      if (code.includes('sourceMappingURL=')) {
+        return {
+          code: code.replace(/\/\/[#@]\s*sourceMappingURL=[^\s\n]+/g, ''),
+          map: null
+        }
+      }
+    }
+  },
+  load(id) {
+    if (id.endsWith('.map') && (id.includes('@mediapipe') || id.includes('onnxruntime-web'))) {
+      return JSON.stringify({ version: 3, sources: [], mappings: '' })
+    }
+  }
+}
+
 export default defineConfig({
-  server:  { host: '0.0.0.0', port: 3000, headers: COOP_HEADERS, allowedHosts: true },
+  server:  {
+    host: '0.0.0.0',
+    port: 3000,
+    headers: COOP_HEADERS,
+    allowedHosts: true,
+    sourcemapIgnoreList(sourcePath) {
+      return sourcePath.includes('node_modules')
+    }
+  },
   preview: { host: '0.0.0.0', port: 3000, headers: COOP_HEADERS },
+  worker:  { format: 'es' },
   optimizeDeps: {
     exclude: ['onnxruntime-web', '@mediapipe/tasks-vision']
   },
-  plugins: [copiaAssetsSelfHosted, sirveAssetsSelfHostedDev],
+  plugins: [fixMissingSourceMaps, copiaAssetsSelfHosted, sirveAssetsSelfHostedDev],
   build: {
+    sourcemap: false,
     target:    'es2022',
     minify:    'terser',
     cssMinify: 'lightningcss',
