@@ -78,6 +78,9 @@ export class GameManager {
     window.dispatchEvent(new CustomEvent('yoso:juego', { detail }))
   }
 
+  private _prevFeedbackMsg: string | null = null
+  private _prevFeedbackType = ''
+
   private historialPalabras: string[] = []
 
   constructor() {
@@ -325,6 +328,7 @@ export class GameManager {
   private _renderPalabra(): void {
     // XSS: createElement en vez de innerHTML (palabraActual puede venir de API externa)
     this.elObjetivo.textContent = ''
+    this.elObjetivo.dataset.length = String(this.palabraActual.length)
     this.palabraActual.split('').forEach((ch, i) => {
       const span = document.createElement('span')
       span.textContent = ch
@@ -341,12 +345,22 @@ export class GameManager {
   private _renderProgreso(): void {
     const { req } = NIVELES[this.nivelIdx]
     const pct = Math.round((this.palabrasOk / req) * 100)
-    this.elProgreso.textContent      = `${this.palabrasOk}/${req}`
+    this.elProgreso.textContent    = `${this.palabrasOk} / ${req}`
     this.elProgresoBar.style.width = `${pct}%`
   }
 
   private _setFeedback(msg: string, type: 'idle' | 'success' | 'error' | 'warn'): void {
-    this.elFeedback.textContent = msg
-    this.elFeedback.className   = `game-feedback fb-${type}`
+    if (!this.elFeedback) return
+    // onLetraDetectada dispara por frame: solo escribir DOM si cambió.
+    if (msg === this._prevFeedbackMsg && type === this._prevFeedbackType) return
+    this._prevFeedbackMsg   = msg
+    this._prevFeedbackType  = type
+    this.elFeedback.className = `word-card__feedback-strip fb-${type}`
+    const textEl = this.elFeedback.querySelector('.feedback-text')
+    if (textEl) {
+      textEl.textContent = msg
+    } else {
+      this.elFeedback.innerHTML = `<span class="feedback-dot"></span><span class="feedback-text">${msg}</span>`
+    }
   }
 }
