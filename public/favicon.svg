@@ -1,5 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#0D1117"/>
-  <text x="16" y="23" text-anchor="middle" fill="#38BDF8"
-        font-family="'Courier New', monospace" font-weight="700" font-size="20">Y</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" width="32" height="32" fill="none">
+  <defs>
+    <linearGradient id="favHandGrad" x1="10" y1="10" x2="110" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/>
+      <stop offset="40%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="favLineGrad" x1="10" y1="10" x2="100" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Silueta Principal de la Mano en Seña Y -->
+  <!-- 1. Meñique extendido (izquierda) -->
+  <path d="M 23 8 C 16 10 13 20 18 30 L 25 43 C 27 46 31 46 33 43 L 38 32 C 40 27 38 20 34 14 C 30 9 26 7 23 8 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 20 17 L 31 13" stroke="url(#favLineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 23 25 L 34 21" stroke="url(#favLineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 26 34 L 37 30" stroke="url(#favLineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- 2. Dedo Anular flexionado -->
+  <path d="M 37 28 C 37 18 45 13 52 14 C 59 15 62 22 61 30 L 59 44 C 57 48 48 48 44 45 L 37 38 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 3. Dedo Medio flexionado -->
+  <path d="M 58 24 C 58 14 66 10 74 11 C 81 12 84 18 83 26 L 81 42 C 79 46 70 47 66 44 L 58 35 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 4. Dedo Índice flexionado -->
+  <path d="M 79 22 C 80 14 88 10 95 12 C 101 14 104 20 102 28 L 98 44 C 95 48 87 48 83 44 L 79 32 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 5. Palma Central y Dorso -->
+  <path d="M 28 42 C 22 50 25 68 32 78 L 44 94 L 74 94 L 88 78 C 96 66 98 52 94 42 L 80 44 C 74 48 64 48 58 44 C 52 48 42 47 38 43 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- 6. Pulgar extendido (derecha) -->
+  <path d="M 90 42 C 96 36 104 28 111 25 C 117 23 120 28 116 36 C 110 48 102 60 94 68 L 86 60 C 88 52 89 46 90 42 Z" fill="url(#favHandGrad)" stroke="#60A5FA" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 103 33 C 107 38 111 44 113 49" stroke="url(#favLineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 96 44 C 100 48 104 54 106 59" stroke="url(#favLineGrad)" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
