@@ -146,6 +146,11 @@ footer {
 }
 
 @media (max-width: 640px) {
+  #site-footer,
+  footer {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
   .foot-grid {
     grid-template-columns: 1fr;
   }
@@ -153,9 +158,21 @@ footer {
   .foot-col {
     border-right: none;
     border-bottom: 1px solid var(--hairline);
-    padding: 20px 16px;
+    padding: 16px 14px;
+    gap: 8px;
+  }
+  .foot-brand__name {
+    font-size: 20px;
+  }
+  .foot-brand__desc {
+    font-size: 12px;
+  }
+  .foot-link {
+    font-size: 13px;
+    padding: 3px 0;
   }
   .foot-bar {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0));
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;

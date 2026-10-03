@@ -10,9 +10,9 @@
   gap: var(--space-4);
   padding: 12px var(--space-8);
   border-bottom: 1px solid rgba(58, 77, 150, 0.35);
-  background: rgba(25, 42, 75, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  /* Opaco: con 96% de alfa el backdrop-filter era imperceptible y costosísimo
+     recomponiéndolo contra el video cada frame. */
+  background: var(--bg-base);
   position: fixed;
   top: 0;
   left: 0;
@@ -266,27 +266,141 @@
 @media (max-width: 920px) {
   .topbar {
     grid-template-columns: 1fr auto;
-    row-gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    row-gap: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 18px rgba(10, 18, 38, 0.7);
   }
+
+  .topbar__brand {
+    gap: 8px;
+  }
+
+  .topbar__logo-badge {
+    width: 28px;
+    height: 28px;
+  }
+
+  .topbar__logo-badge svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .topbar__title {
+    font-size: 18px;
+  }
+
+  .topbar__actions {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 6px;
+  }
+
+  .topbar__locale-pill {
+    padding: 4px 10px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .topbar__flag {
+    width: 16px;
+    height: 11px;
+  }
+
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: stretch;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1.25fr 1.25fr 0.9fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
+
   .nav__link {
     min-height: 38px;
-    padding: 6px 8px;
+    padding: 6px 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: var(--text-micro);
+    font-size: 11.5px;
+    gap: 5px;
+    border-radius: 6px;
+    letter-spacing: 0;
   }
-  .topbar__actions {
-    grid-column: 2;
-    grid-row: 1;
+
+  .nav__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .nav__link--aux {
+    padding-left: 6px;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 6px 10px;
+    row-gap: 6px;
+  }
+
+  .topbar__version {
+    display: none;
+  }
+
+  .topbar__title {
+    font-size: 17px;
+  }
+
+  .topbar__locale-pill {
+    padding: 3px 8px;
+    font-size: 10.5px;
+  }
+
+  .nav {
+    grid-template-columns: 1fr 1.2fr 1.2fr 0.9fr;
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .nav__link {
+    min-height: 36px;
+    padding: 4px 2px;
+    font-size: 10.5px;
+    gap: 4px;
+  }
+
+  .nav__icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .nav__link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .nav__link {
+    font-size: 9.5px;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 40px;
+  }
+
+  .nav__icon {
+    width: 15px;
+    height: 15px;
   }
 }

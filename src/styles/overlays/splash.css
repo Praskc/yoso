@@ -54,7 +54,57 @@
   letter-spacing: 0.04em;
 }
 
-/* ── Loader ────────────────────────────────────────────────────────────── */
+/* ── Loader Personalizado (prixClipFix con paleta YOSO) ───────────── */
+.loader-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.loader {
+  --color-1: rgba(91, 139, 213, 0.2);
+  --color-2: #60A5FA;
+  --size: 1px;
+
+  width: calc(48 * var(--size));
+  height: calc(48 * var(--size));
+  border: calc(10 * var(--size)) solid var(--color-1);
+  border-radius: 50%;
+  position: relative;
+  transform: rotate(45deg);
+  box-sizing: border-box;
+  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.45));
+}
+
+.loader::before {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+  inset: calc(-10 * var(--size));
+  border-radius: 50%;
+  border: calc(10 * var(--size)) solid var(--color-2);
+  animation: prixClipFix 2s infinite linear;
+}
+
+@keyframes prixClipFix {
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0);
+  }
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0);
+  }
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%);
+  }
+  75% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%);
+  }
+  100% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0);
+  }
+}
+
 .splash-loader {
   display: inline-flex;
   align-items: center;
@@ -65,15 +115,6 @@
   border-radius: 9999px;
   box-shadow: 0 4px 16px rgba(10, 18, 38, 0.5);
   transition: all var(--dur-quick) var(--ease-out);
-}
-
-.splash-spin {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #5B8BD5;
-  box-shadow: 0 0 8px #5B8BD5;
-  animation: pulse-signal 1.5s var(--ease-out) infinite;
 }
 
 .splash-step {
@@ -88,12 +129,6 @@
 .splash-step[data-error="true"] {
   color: #F87171;
   font-weight: 700;
-}
-
-.splash-step[data-error="true"] ~ .splash-spin,
-.splash-loader:has(.splash-step[data-error="true"]) .splash-spin {
-  background: #F87171;
-  box-shadow: 0 0 10px #F87171;
 }
 
 /* ── Tip Card con Drenaje de 4s ────────────────────────────────────────── */

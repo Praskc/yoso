@@ -64,6 +64,12 @@
   --text-small:       0.875rem; /* 14px */
   --text-micro:       0.75rem;  /* 12px */
 
+  /* Breakpoints y Anchos de Pantalla */
+  --breakpoint-wide:  1520px;
+  --breakpoint-desk:  1280px;
+  --breakpoint-tab:   920px;
+  --breakpoint-mob:   640px;
+
   /* Espaciado instrumental */
   --space-1:          4px;
   --space-2:          8px;

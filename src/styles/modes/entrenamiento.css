@@ -8,6 +8,8 @@
   flex-direction: column;
   gap: var(--space-4);
   width: 100%;
+  height: 100%;
+  justify-content: space-between;
 }
 
 /* ── 1. Stats (3 Columnas, Hairlines Verticales) ───────────────────────── */
@@ -47,22 +49,37 @@
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  transition: color var(--dur-quick) var(--ease-out);
 }
 
 #racha-valor {
   color: var(--warm);
 }
 
-/* ── 2. Word Card: La palabra es el Hero de la Sidebar (56-72px) ───────── */
+/* Micro-animación rojiza al perder la racha (feedback sordo-first sin diálogos) */
+.racha-drop {
+  animation: racha-penalty 600ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes racha-penalty {
+  0% { transform: scale(1); color: var(--warm); }
+  20% { transform: scale(1.3) translateY(-2px); color: #EF4444; text-shadow: 0 0 12px rgba(239, 68, 68, 0.9); }
+  40% { transform: scale(0.9) translateY(2px); color: #F87171; }
+  60% { transform: scale(1.1) translateY(-1px); color: #EF4444; }
+  80% { transform: scale(0.98); color: #EF4444; }
+  100% { transform: scale(1); color: var(--warm); }
+}
+
+/* ── 2. Word Card: Tipografía Libre, Feedback en Vivo y Controles Jerárquicos ── */
 .word-card {
-  padding: 24px;
+  padding: 16px 20px;
   background: var(--surface);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  box-shadow: 0 4px 18px rgba(25, 42, 75, 0.35);
+  gap: 12px;
+  box-shadow: 0 4px 18px rgba(10, 18, 36, 0.45);
 }
 
 .word-card__head {
@@ -70,126 +87,207 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--hairline-subtle);
-  padding-bottom: var(--space-2);
+  padding-bottom: 6px;
 }
 
 .word-card__label {
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--ink-sub);
   text-transform: uppercase;
 }
 
-.word-card__source {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  color: var(--ink-sub);
-  text-transform: uppercase;
-}
-
-.word-card__source-icon {
-  padding: 1px 4px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-xs);
-  background: var(--bg-deep);
-  font-size: 9px;
-}
-
-/* Texto de la palabra: 56-72px, con guías, sin cajas estilo Scrabble */
+/* Tipografía de la palabra: limpia, espaciada, fluida con subrayados individuales */
 .word {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-brand);
-  font-variation-settings: 'opsz' 72, 'wght' 800;
-  font-size: clamp(54px, 8.5vw, 72px);
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  font-family: var(--font-display), var(--font-brand);
+  font-variation-settings: 'opsz' 64, 'wght' 800;
+  font-size: clamp(34px, 4.8vw, 44px);
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   user-select: none;
-  padding: var(--space-4) 0;
-  min-height: 84px;
-  overflow-x: auto;
+  padding: 12px 18px;
+  min-height: 64px;
+  background: rgba(14, 23, 45, 0.6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
 }
 
+/* Moduladores según longitud de la palabra (3 a 10+ letras) */
+.word[data-length="3"],
+.word[data-length="4"] {
+  font-size: clamp(38px, 5.2vw, 48px);
+  gap: 16px;
+}
+
+.word[data-length="5"],
+.word[data-length="6"] {
+  font-size: clamp(30px, 4vw, 36px);
+  gap: 12px;
+}
+
+.word[data-length="7"],
+.word[data-length="8"],
+.word[data-length="9"],
+.word[data-length="10"] {
+  font-size: clamp(22px, 3vw, 28px);
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+/* Cada letra individual (sin caja estilo Scrabble, estilo tipografía editorial con guía base) */
 #letra-objetivo span {
   position: relative;
-  display: inline-block;
-  min-width: 0.65em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 2px 4px 8px 4px;
   text-align: center;
   transition: all var(--dur-quick) var(--ease-out);
 }
 
-/* Resueltas: verde de éxito luminoso y subrayado sólido */
+/* Letras resueltas: verde de éxito brillante y subrayado sólido */
 #letra-objetivo .gw-done {
   color: #86EFAC;
-  text-shadow: 0 0 10px rgba(134, 239, 172, 0.4);
+  text-shadow: 0 0 14px rgba(134, 239, 172, 0.6);
 }
 #letra-objetivo .gw-done::after {
   content: '';
   position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: -4px;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
   height: 2.5px;
   background: #86EFAC;
-  border-radius: 1px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(134, 239, 172, 0.7);
 }
 
-/* Slot actual: subrayado animado + color acento celeste */
+/* LETRA ACTUAL: ¡Visualmente inequívoca! Escala destacada, glow intenso, color acento vibrante */
 #letra-objetivo .gw-current {
-  color: #60A5FA;
-  text-shadow: 0 0 14px rgba(96, 165, 250, 0.5);
+  color: #FFFFFF;
+  transform: scale(1.15) translateY(-2px);
+  text-shadow: 0 0 20px rgba(96, 165, 250, 0.9), 0 0 8px #60A5FA;
+  filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.8));
 }
 #letra-objetivo .gw-current::after {
   content: '';
   position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: -4px;
-  height: 3px;
-  background: #60A5FA;
-  border-radius: 2px;
-  animation: blink-caret 1s steps(2) infinite;
+  left: -2px;
+  right: -2px;
+  bottom: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, #60A5FA, #93C5FD);
+  border-radius: 999px;
+  box-shadow: 0 0 12px #60A5FA, 0 0 20px rgba(96, 165, 250, 0.8);
+  animation: pulse-signal 1.2s var(--ease-out) infinite;
 }
 
-/* Pendientes: perfectamente legibles con contraste nítido sobre el fondo surface */
+/* Letras pendientes: tono atenuado y guía sutil */
 #letra-objetivo .gw-pending {
-  color: #CBD5E1;
-  opacity: 0.55;
+  color: rgba(148, 163, 184, 0.45);
 }
 #letra-objetivo .gw-pending::after {
   content: '';
   position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: -4px;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
   height: 1.5px;
-  background: rgba(203, 213, 225, 0.35);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 1px;
 }
 
-/* ── Intentos: 3 Dots que se vuelven × al gastarse ─────────────────────── */
-.attempts {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
+/* ── Franja de Feedback en Vivo (Dedicada y Dinámica) ── */
+.word-card__feedback-strip {
+  display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding-top: var(--space-2);
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.feedback-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fb-idle {
+  background: rgba(14, 23, 45, 0.5);
+  border: 1px solid var(--hairline-subtle);
+  color: var(--ink-sub);
+}
+.fb-idle .feedback-dot {
+  background: var(--ink-faint);
+}
+
+.fb-success {
+  background: rgba(134, 239, 172, 0.14);
+  border: 1px solid rgba(134, 239, 172, 0.4);
+  color: #86EFAC;
+  box-shadow: 0 0 12px rgba(134, 239, 172, 0.2);
+}
+.fb-success .feedback-dot {
+  background: #86EFAC;
+  box-shadow: 0 0 8px #86EFAC;
+  animation: pulse-signal 1.4s var(--ease-out) infinite;
+}
+
+.fb-error {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #FCA5A5;
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.2);
+}
+.fb-error .feedback-dot {
+  background: #EF4444;
+  box-shadow: 0 0 8px #EF4444;
+}
+
+.fb-warn {
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #FCD34D;
+}
+.fb-warn .feedback-dot {
+  background: #F59E0B;
+}
+
+/* ── Intentos / Fallos: "fallos: 0/3" con puntos que se ponen rojos al fallar ── */
+.attempts {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
   border-top: 1px solid var(--hairline-subtle);
 }
 
 .attempts__label {
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
+  font-size: 10px;
   color: var(--ink-sub);
   text-transform: uppercase;
+}
+.attempts__label strong {
+  color: var(--ink);
+  font-size: 11px;
 }
 
 .attempts__dots {
@@ -199,86 +297,78 @@
 }
 
 .attempts__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--bg-deep);
-  border: 1px solid var(--hairline-strong);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 8px;
-  line-height: 1;
-  color: transparent;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(14, 23, 45, 0.8);
+  border: 1.5px solid rgba(148, 163, 184, 0.4);
   transition: all var(--dur-quick) var(--ease-out);
 }
 
-/* Al gastarse se vuelve una × vía CSS content */
 .attempts__dot--used {
-  background: var(--danger-glow);
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.attempts__dot--used::before {
-  content: '×';
-  font-size: 9px;
-  font-weight: 700;
+  background: #EF4444;
+  border-color: #EF4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+  transform: scale(1.1);
 }
 
 .attempts__hint {
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  color: var(--ink-sub);
-  text-align: right;
+  font-size: 9px;
+  color: var(--ink-faint);
   text-transform: uppercase;
 }
 
-/* ── Progreso del Nivel ────────────────────────────────────────────────── */
+/* ── Progreso: Palabras para subir (Barra reforzada de 7px con gradiente) ── */
 .word-card__progress {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding-top: var(--space-2);
+  gap: 6px;
+  padding-top: 4px;
   border-top: 1px solid var(--hairline-subtle);
 }
 
 .word-card__progress-label {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
+  font-size: 10px;
+  font-weight: 600;
   color: var(--ink-sub);
   text-transform: uppercase;
 }
 
 .word-card__progress-count {
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--ink);
-}
-.word-card__progress-count .denom {
-  color: var(--ink-sub);
 }
 
 .word-card__progress-bar {
-  height: 4px;
-  background: var(--bg-deep);
-  border-radius: 2px;
+  height: 7px;
+  background: rgba(14, 23, 45, 0.85);
+  border: 1px solid var(--hairline-subtle);
+  border-radius: 999px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .word-card__progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: linear-gradient(90deg, #60A5FA, #93C5FD);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
   transition: width var(--dur-base) var(--ease-out);
 }
 
-/* ── Acciones de Navegación de Palabra (Anterior, Siguiente) ────────────── */
+/* ── Acciones de Navegación: Jerarquía Clara (SIGUIENTE = Primario, ANTERIOR/OMITIR = Secundarios) ── */
 .word-card__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding-top: var(--space-3);
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--hairline-subtle);
 }
 
@@ -287,65 +377,102 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 10px;
-  background: var(--bg-deep);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-xs);
-  color: var(--ink-mid);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-quick) var(--ease-out);
 }
 
-.game-action-btn:hover {
-  color: var(--ink);
-  background: var(--surface-hi);
+/* Botón Anterior: Ghost sutil */
+.game-action-btn--prev {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--ink-sub);
+}
+.game-action-btn--prev:hover {
+  background: rgba(14, 23, 45, 0.6);
   border-color: var(--hairline-strong);
+  color: var(--ink);
 }
 
+/* Botón Omitir: Tenue y diferenciado con tooltip sutil en desktop */
+.game-action-btn--skip {
+  position: relative;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #FCD34D;
+}
+.game-action-btn--skip:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #FCD34D;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
+}
+@media (hover: hover) and (pointer: fine) {
+  .game-action-btn--skip[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 3px 8px;
+    background: rgba(10, 18, 38, 0.95);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #FCD34D;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--dur-quick) var(--ease-out);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+  }
+  .game-action-btn--skip[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Botón Siguiente: Primario, brillante y protagónico */
+.game-action-btn--next {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border: 1px solid #60A5FA;
+  color: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+}
+.game-action-btn--next:hover {
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.6);
+  transform: translateY(-1px);
+}
 .game-action-btn:active {
   transform: scale(0.97);
 }
 
-.game-action-btn--skip {
-  color: var(--warm);
-  border-color: rgba(198, 181, 141, 0.35);
-  background: rgba(198, 181, 141, 0.08);
-}
-
-.game-action-btn--skip:hover {
-  background: rgba(198, 181, 141, 0.18);
-  border-color: var(--warm);
-  color: var(--warm-strong);
-}
-
 .game-action-btn__icon {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
   stroke: currentColor;
 }
 
-/* ── 3. Feedback: Oculto según solicitud ─────────────────── */
-#feedback-mensaje,
-.game-feedback {
-  display: none !important;
-}
-
-/* ── 4. Constelación de Progresión (Full-Width, Nodos 10-14px, Halo en --warm) */
+/* ── 4. Constelación de Progresión (Opción A: Camino Curvo Suave y Estrellas) ── */
 .levels {
-  padding: 20px 24px;
+  padding: 14px 18px;
   background: var(--surface);
-  border: 1px solid var(--hairline-strong);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  box-shadow: 0 4px 18px rgba(25, 42, 75, 0.35);
+  gap: 10px;
+  box-shadow: 0 4px 18px rgba(10, 18, 36, 0.45);
   position: relative;
 }
 
@@ -354,57 +481,31 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--hairline-subtle);
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .levels__label {
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--ink-sub);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink);
   text-transform: uppercase;
 }
 
 .levels__sub {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-xs);
-  background: rgba(198, 181, 141, 0.12);
-  border: 1px solid rgba(198, 181, 141, 0.35);
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--warm);
-  text-transform: uppercase;
-}
-
-.levels__sub::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--warm);
-  box-shadow: 0 0 6px var(--warm);
-  animation: pulse-signal 1.8s var(--ease-out) infinite;
+  display: none !important;
 }
 
 .levels__map {
   position: relative;
   width: 100%;
-  height: 84px;
-  background: var(--bg-deep);
-  background-image:
-    linear-gradient(to right, rgba(232, 236, 246, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(232, 236, 246, 0.035) 1px, transparent 1px);
-  background-size: 17px 17px;
+  height: 104px;
+  background: rgba(14, 23, 45, 0.85);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(11, 17, 32, 0.35);
+  box-shadow: inset 0 2px 10px rgba(5, 10, 24, 0.7);
 }
 
 .levels__svg {
@@ -413,131 +514,347 @@
   display: block;
 }
 
-.lvl-line {
-  stroke: var(--hairline-strong);
-  stroke-width: 1.5;
-  transition: all var(--dur-base) var(--ease-out);
-}
-.lvl-line--done {
-  stroke: var(--warm);
-  stroke-width: 2;
-  filter: drop-shadow(0 0 3px rgba(198, 181, 141, 0.4));
+/* ── Curva Suave de la Constelación ────────────────────────────────────── */
+.cst-path-base {
+  stroke: rgba(91, 139, 213, 0.22);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.lvl-station {
+.cst-path-active {
+  stroke: #D9CBAA;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgba(217, 203, 170, 0.7));
+  transition: stroke-dashoffset 400ms var(--ease-out), all var(--dur-base) var(--ease-out);
+}
+
+/* ── Nodos Estelares ───────────────────────────────────────────────────── */
+.cst-node-group {
   cursor: default;
 }
 
-.lvl-node {
-  fill: var(--bg-deep);
-  stroke: var(--hairline-strong);
-  stroke-width: 1.5;
-  transition: all var(--dur-quick) var(--ease-out);
+/* Nodo Completado (Estrella dorada llena) */
+.cst-star-done-bg {
+  fill: #1E1913;
+  stroke: #D9CBAA;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba(217, 203, 170, 0.5));
 }
-.lvl-node--done {
-  fill: var(--warm);
-  stroke: var(--warm-strong);
-  filter: drop-shadow(0 0 4px rgba(198, 181, 141, 0.6));
-}
-.lvl-node--current {
-  fill: var(--bg-deeper);
-  stroke: var(--warm);
-  stroke-width: 2.5;
-  filter: drop-shadow(0 0 6px var(--warm));
+.cst-star-icon {
+  filter: drop-shadow(0 0 4px rgba(217, 203, 170, 0.8));
 }
 
-.lvl-node--current-glow {
-  fill: none;
-  stroke: var(--warm);
+/* Nodo Actual (Azul acento con pulso y pop animado) */
+.cst-star-current {
+  fill: #3B82F6;
+  stroke: #FFFFFF;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.95));
+}
+
+.cst-pop {
+  animation: star-pop 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cst-star-celebrate {
+  animation: star-celebrate 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes star-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes star-celebrate {
+  0% { transform: scale(0.5); opacity: 0; }
+  45% { transform: scale(1.35); filter: drop-shadow(0 0 16px #60A5FA); }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.cst-halo {
+  fill: rgba(59, 130, 246, 0.2);
+  stroke: #60A5FA;
   stroke-width: 1.25;
   animation: pulse-signal 1.8s var(--ease-out) infinite;
 }
 
-.lvl-node--current-orbit {
-  fill: none;
-  stroke: var(--warm);
-  stroke-width: 0.75;
-  stroke-dasharray: 2 3;
-  opacity: 0.6;
+.cst-halo--burst {
+  animation: halo-burst 600ms ease-out forwards;
 }
 
-.lvl-label {
+@keyframes halo-burst {
+  0% { r: 12; opacity: 1; stroke-width: 3; }
+  100% { r: 32; opacity: 0; stroke-width: 0.5; }
+}
+
+/* Nodo Futuro (Estrella vacía con contorno tenue y numeral romano) */
+.cst-star-future {
+  fill: rgba(14, 23, 45, 0.9);
+  stroke: rgba(148, 163, 184, 0.35);
+  stroke-width: 1.5;
+}
+
+/* Numeral Romano */
+.cst-roman {
   font-family: var(--font-mono);
-  font-size: 8.5px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.cst-roman--curr {
+  fill: #FFFFFF;
+}
+.cst-roman--future {
+  fill: rgba(148, 163, 184, 0.55);
+}
+
+/* Nombre de rango */
+.cst-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 0.08em;
-  fill: var(--ink-sub);
-  text-anchor: middle;
   text-transform: uppercase;
 }
-.lvl-label--current {
-  fill: var(--ink);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+.cst-label--curr {
+  fill: #93C5FD;
+  filter: drop-shadow(0 0 6px rgba(147, 197, 253, 0.7));
 }
-.lvl-label--done {
-  fill: var(--ink-mid);
-  font-weight: 500;
+.cst-label--done {
+  fill: rgba(217, 203, 170, 0.9);
 }
-.lvl-label--locked {
-  fill: var(--ink-ghost);
+.cst-label--future {
+  fill: rgba(148, 163, 184, 0.5);
 }
 
-/* ── 5. Historial: Nube de Chips al Pie (Última en --warm) ─────────────── */
+/* ── 5. Historial: Chips Ricos y Empty State de Pura Forma ─────────────── */
 .history {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: var(--surface);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  box-shadow: 0 4px 16px rgba(25, 42, 75, 0.3);
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(10, 18, 36, 0.45);
 }
 
 .history__head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   border-bottom: 1px solid var(--hairline-subtle);
   padding-bottom: 6px;
 }
 
+.history__title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(91, 139, 213, 0.15);
+  color: var(--accent-strong);
+}
+
 .history__label {
   font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  color: var(--ink-sub);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink);
   text-transform: uppercase;
 }
 
-.history__count {
+.history__summary {
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+  letter-spacing: 0.04em;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+.history__summary.is-active {
   color: var(--warm);
-  font-weight: 600;
+  text-shadow: 0 0 8px rgba(217, 203, 170, 0.3);
 }
 
 .history__list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
-  min-height: 24px;
+  gap: 6px;
+  min-height: 32px;
+  align-items: center;
 }
 
-.history__word {
-  font-family: var(--font-ui);
-  font-size: var(--text-small);
-  color: var(--ink-sub);
-  text-transform: lowercase;
-  padding: 2px 8px;
-  border: 1px solid var(--hairline-subtle);
-  border-radius: var(--radius-xs);
-  background: var(--bg-deep);
+/* ── Ghost Chips con Hand Icon + Slot Dashes ──────────────────────────── */
+.ghost-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px dashed rgba(91, 139, 213, 0.3);
+  border-radius: 999px;
+  background: rgba(14, 23, 45, 0.35);
+  opacity: 0.55;
+  transition: all 240ms var(--ease-out);
 }
 
-.history__word--latest {
+.ghost-chip--displace {
+  opacity: 0;
+  transform: translateX(12px) scale(0.85);
+}
+
+.ghost-hand {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.ghost-slots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.ghost-slots span {
+  width: 5px;
+  height: 1.5px;
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 1px;
+}
+
+.ghost-caption {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* ── Chip de Palabra Completada (Con Micro-Sign, Check, Palabra y Pts) ── */
+.history-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: rgba(19, 32, 58, 0.75);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.history-chip--enter {
+  animation: chip-bounce-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes chip-bounce-in {
+  0% { opacity: 0; transform: translateX(-12px) scale(0.85); }
+  60% { transform: translateX(2px) scale(1.05); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.history-chip__sign {
+  width: 14px;
+  height: 18px;
+  object-fit: contain;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.4));
+}
+
+.history-chip__check {
+  font-size: 9.5px;
+  color: #86EFAC;
+  font-weight: 800;
+}
+
+.history-chip__word {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
   color: var(--ink);
-  border-color: var(--warm);
-  background: var(--surface-hi);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
+
+.history-chip__pts {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--warm);
+  background: rgba(217, 203, 170, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.history-chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.history-chip.history__word--latest {
+  border-color: var(--warm);
+  background: rgba(217, 203, 170, 0.12);
+  box-shadow: 0 0 10px rgba(217, 203, 170, 0.25);
+}
+
+/* ── Mobile Responsive Adjustments para Modo Entrenamiento ─────────────── */
+@media (max-width: 640px) {
+  #tab-entrenamiento.active {
+    gap: 10px;
+  }
+
+  .game-stat {
+    padding: 8px 10px;
+    gap: 2px;
+  }
+
+  .game-stat__label {
+    font-size: 9px;
+  }
+
+  .game-stat__value {
+    font-size: 17px;
+  }
+
+  .word-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .word-hero__text {
+    font-size: clamp(34px, 10vw, 52px);
+    letter-spacing: -0.02em;
+  }
+
+  .levels {
+    padding: 10px 12px;
+  }
+
+  .levels__map {
+    height: 90px;
+  }
+
+  .attempts-card {
+    padding: 10px 12px;
+  }
+
+  .history {
+    padding: 10px 12px;
+  }
+}
+
