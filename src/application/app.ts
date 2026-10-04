@@ -1,11 +1,11 @@
 import * as ort                                          from 'onnxruntime-web'
 import { HandLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
 import type { HandLandmarkerResult }                     from '@mediapipe/tasks-vision'
-import { MotorInferencia, BORRAR }                       from '../engine/inference'
-import { GameManager }                                   from '../game/game'
-import { RenderizadorUI }                                from '../ui'
-import type { Lateralidad, Punto }                       from '../engine/types'
-import type { WorkerInMsg, WorkerOutMsg }                from '../workers/protocol'
+import { MotorInferencia, BORRAR }                       from '../domain/recognition/inference'
+import { GameManager }                                   from '../domain/game/game'
+import { RenderizadorUI }                                from '../presentation/components'
+import type { Lateralidad, Punto }                       from '../domain/recognition/types'
+import type { WorkerInMsg, WorkerOutMsg }                from '../infrastructure/workers/protocol'
 
 const LIMITE_SUPERIOR  = 0.10
 const LIMITE_IZQUIERDO = 0.15
@@ -307,7 +307,7 @@ export class YOSOApp {
 
   private _crearWorker(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const w = new Worker(new URL('../workers/engine.worker.ts', import.meta.url), { type: 'module' })
+      const w = new Worker(new URL('../infrastructure/workers/engine.worker.ts', import.meta.url), { type: 'module' })
       const timeout = window.setTimeout(
         () => reject(new Error('El worker de detección no respondió a tiempo')),
         20000

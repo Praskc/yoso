@@ -1,4 +1,4 @@
-import { a11y } from '../core/accessibility'
+import { a11y } from '../../../application/accessibility'
 
 export class AccessibilityModal {
   private panelEl: HTMLElement | null = null

@@ -1,5 +1,5 @@
-import { signURI }  from '../lib/signs'
-import { BORRAR }   from '../engine/inference'
+import { signURI }  from '../../presentation/assets/sign-uris'
+import { BORRAR }   from '../recognition/inference'
 
 const NIVELES = [
   { nivel: 1, minLen: 3, maxLen: 4, req: 3,  label: 'NOVATO'   },

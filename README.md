@@ -181,28 +181,37 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 
 ```
 ├── src/
-│   ├── core/
-│   │   ├── app.ts              # Orquestador: pipeline Tasks-Vision, ROI, visibilidad, luminosidad
+│   ├── app/
 │   │   └── main.ts             # Entry point + registro del Service Worker
-│   ├── engine/
-│   │   ├── inference.ts        # Motor IA: preprocesado, softmax, filtros, buffer circular de votos
-│   │   └── types.ts            # Interfaces TypeScript del motor
-│   ├── game/
-│   │   └── game.ts             # Motor de gamificación, 300 palabras, 5 niveles, eventos yoso:juego
-│   ├── lib/
-│   │   └── signs.ts            # Diagramas SVG del alfabeto (perspectiva observador)
-│   ├── ui/
-│   │   ├── index.ts            # RenderizadorUI: orquesta todos los paneles
-│   │   ├── hud.ts              # HUD de predicción, métricas de mano y estado
-│   │   ├── output.ts           # Panel traductor: letra, buffer, stream de confianza
-│   │   ├── panel-left.ts       # Indicador live de cámara activa
-│   │   ├── game-panel.ts       # Panel entrenamiento: constelación de niveles, historial
-│   │   ├── learn.ts            # Modo aprendizaje: grid del alfabeto con estado visto/activo
-│   │   ├── splash.ts           # Pantalla de carga y estado vacío
-│   │   ├── toast.ts            # Notificaciones no intrusivas
-│   │   ├── onboarding.ts       # Tutorial de primera visita
-│   │   ├── debug.ts            # Panel de debug, métricas, top-3
-│   │   └── site-footer.ts      # Footer con créditos
+│   ├── application/
+│   │   ├── app.ts              # Orquestador dual (GPU/worker): pipeline Tasks-Vision, ROI, cámara, jitter
+│   │   └── accessibility.ts    # Preferencias de accesibilidad (storage local + clases CSS)
+│   ├── domain/
+│   │   ├── recognition/
+│   │   │   ├── inference.ts    # Motor IA: preprocesado, softmax, filtros, buffer circular de votos
+│   │   │   └── types.ts        # Interfaces TypeScript del motor
+│   │   └── game/
+│   │       └── game.ts         # Motor de gamificación, 300 palabras, 5 niveles, eventos yoso:juego
+│   ├── infrastructure/
+│   │   └── workers/
+│   │       ├── engine.worker.ts # Ruta CPU: MediaPipe WASM en hilo dedicado (hot-swap sin WebGL)
+│   │       └── protocol.ts     # Protocolo de mensajes worker ↔ hilo principal
+│   ├── presentation/
+│   │   ├── assets/
+│   │   │   └── sign-uris.ts    # Diagramas SVG del alfabeto (perspectiva observador)
+│   │   └── components/         # Un componente por carpeta
+│   │       ├── index.ts        # RenderizadorUI: orquesta todos los paneles
+│   │       ├── hud/            # HUD de predicción, métricas de mano y estado
+│   │       ├── output-panel/   # Panel traductor: letra, buffer, stream de confianza
+│   │       ├── panel-left/     # Indicador live de cámara activa
+│   │       ├── game-panel/     # Panel entrenamiento: constelación de niveles, historial
+│   │       ├── learn-panel/    # Modo aprendizaje: grid del alfabeto con estado visto/activo
+│   │       ├── splash/         # Pantalla de carga y estado vacío
+│   │       ├── toast/          # Notificaciones no intrusivas
+│   │       ├── onboarding/     # Tutorial de primera visita
+│   │       ├── debug-panel/    # Panel de debug, métricas, top-3
+│   │       ├── site-footer/    # Footer con créditos
+│   │       └── accessibility-modal/ # Modal de accesibilidad
 │   └── styles/
 │       ├── tokens.css          # Variables OKLCH, tipografía, espaciado
 │       ├── base.css            # Reset y estilos base
@@ -269,7 +278,7 @@ cp ml/model/YOSO.onnx public/
 cp ml/model/Centroides.json public/
 ```
 
-> **Consistencia crítica:** `ml/extract.py`, `ml/train.py` y `src/engine/inference.ts` implementan el mismo pipeline de normalización anatómica. Cualquier cambio debe aplicarse en los tres. El umbral de descarte de mano colapsada (`dp <= 1e-4`) está alineado entre `ml/features.py` y `src/engine/inference.ts`.
+> **Consistencia crítica:** `ml/extract.py`, `ml/train.py` y `src/domain/recognition/inference.ts` implementan el mismo pipeline de normalización anatómica. Cualquier cambio debe aplicarse en los tres. El umbral de descarte de mano colapsada (`dp <= 1e-4`) está alineado entre `ml/features.py` y `src/domain/recognition/inference.ts`.
 
 > **Datasets configurables:** `ml/config.py` lee la variable de entorno `YOSO_DATA_ROOTS` (rutas separadas por `;` en Windows o `:` en Unix).
 
@@ -341,7 +350,11 @@ Implicancias:
 
 ## Changelog
 
-### v3.1: UI modular y performance frontend (actual)
+### v3.1.1: arquitectura por capas (actual)
+
+Reorganización de `src/` en capas adoptada de la PR #3: `app/` (entry point), `application/` (orquestador dual + accesibilidad), `domain/` (motor de inferencia y juego), `infrastructure/` (workers) y `presentation/` (un componente por carpeta + assets); `src/styles/` permanece en su lugar. Renombres kebab: `output-panel`, `learn-panel`, `debug-panel`, `sign-uris`. Solo movimientos de archivos, sin cambios de comportamiento: tsc 0 errores, 8/8 tests y bundle de producción bit-exacto (hashes idénticos pre/post).
+
+### v3.1: UI modular y performance frontend
 
 CSS refactorizado en módulos (`src/styles/components/`, `modes/`, `overlays/`) con tokens OKLCH. Fuentes self-hosted via Fontsource (Bricolage Grotesque Variable + Geist Variable), eliminando la dependencia de Google Fonts. DOM write guards en HUD y PanelLeft: early-return cuando el valor no cambia (~30fps sin escrituras redundantes). Buffer cells cacheadas y coordenadas X precalculadas en OutputPanel, running sum para el promedio del stream. Eventos `yoso:juego` personalizados reemplazando MutationObserver en GamePanel. Service worker v12 simplificado a cache-first puro sin handlers CDN obsoletos. Licencia MIT.
 

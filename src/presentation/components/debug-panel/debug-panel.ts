@@ -1,4 +1,4 @@
-import type { CargaDebug } from '../engine/types'
+import type { CargaDebug } from '../../../domain/recognition/types'
 
 export class DebugPanel {
   private root: HTMLElement | null = null

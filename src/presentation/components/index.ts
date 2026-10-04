@@ -1,16 +1,16 @@
-import { HUD }           from './hud'
-import { DebugPanel }    from './debug'
-import { Toast, type TipoToast } from './toast'
-import { Onboarding }    from './onboarding'
-import { AlphabetLearn } from './learn'
-import { Splash }        from './splash'
-import { PanelLeft }     from './panel-left'
-import { OutputPanel }   from './output'
-import { GamePanel }     from './game-panel'
-import { SiteFooter }    from './site-footer'
-import { AccessibilityModal } from './accessibility-modal'
-import { a11y }          from '../core/accessibility'
-import type { CargaDebug } from '../engine/types'
+import { HUD }           from './hud/hud'
+import { DebugPanel }    from './debug-panel/debug-panel'
+import { Toast, type TipoToast } from './toast/toast'
+import { Onboarding }    from './onboarding/onboarding'
+import { AlphabetLearn } from './learn-panel/learn-panel'
+import { Splash }        from './splash/splash'
+import { PanelLeft }     from './panel-left/panel-left'
+import { OutputPanel }   from './output-panel/output-panel'
+import { GamePanel }     from './game-panel/game-panel'
+import { SiteFooter }    from './site-footer/site-footer'
+import { AccessibilityModal } from './accessibility-modal/accessibility-modal'
+import { a11y }          from '../../application/accessibility'
+import type { CargaDebug } from '../../domain/recognition/types'
 
 export class RenderizadorUI {
   private readonly panelLeft:  PanelLeft
@@ -50,7 +50,7 @@ export class RenderizadorUI {
   mensajeSplash(mensaje: string, esError = false): void        { this.splash.mensaje(mensaje, esError) }
   ocultarSplash(): void                                         { this.splash.ocultar() }
   setLive(activo: boolean): void                                { this.panelLeft.setLive(activo) }
-  mostrarEstadoVacio(err: DOMException | null, onReintentar: () => void, estado: import('./splash').TipoEstadoCamara | boolean = 'other'): void {
+  mostrarEstadoVacio(err: DOMException | null, onReintentar: () => void, estado: import('./splash/splash').TipoEstadoCamara | boolean = 'other'): void {
     this.splash.mostrarEstadoVacio(err, onReintentar, estado)
     this.panelLeft.setLive(false)
   }

@@ -1,4 +1,4 @@
-import { signURI } from '../lib/signs'
+import { signURI } from '../../assets/sign-uris'
 
 // Nodos para viewBox 0 0 340 104 — Mayor altura, amplitud y legibilidad de texto
 const CONSTELLATION_NODES = [

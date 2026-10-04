@@ -1,4 +1,4 @@
-import type { Punto } from '../engine/types'
+import type { Punto } from '../../domain/recognition/types'
 
 // Protocolo del worker de detección (ruta CPU). El worker solo corre MediaPipe;
 // la inferencia ONNX siempre vive en el hilo principal (MotorInferencia).

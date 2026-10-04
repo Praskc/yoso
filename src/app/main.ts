@@ -1,4 +1,4 @@
-import { YOSOApp } from './app'
+import { YOSOApp } from '../application/app'
 
 document.addEventListener('DOMContentLoaded', () => {
   const app = new YOSOApp()

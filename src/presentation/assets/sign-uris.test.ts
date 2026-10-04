@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SIGNS, signURI } from './signs'
+import { SIGNS, signURI } from './sign-uris'
 
 describe('catálogo de señas (signs.ts)', () => {
   it('cubre exactamente las 26 letras A–Z', () => {

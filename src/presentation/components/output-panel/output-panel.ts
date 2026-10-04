@@ -1,4 +1,4 @@
-import { a11y } from '../core/accessibility'
+import { a11y } from '../../../application/accessibility'
 
 const CIRCUMFERENCE = 364.42 // Para r = 58 (2 * Math.PI * 58)
 
