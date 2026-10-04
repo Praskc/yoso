@@ -45,6 +45,18 @@ export class RenderizadorUI {
       }
     })
     window.addEventListener('yoso:texto-clear', () => this.output.limpiarTexto())
+
+    // Actualización del SW lista (controllerchange): recarga manual — nunca
+    // auto-reload, no sea que el usuario esté a mitad de una seña y pierda
+    // el transcript.
+    window.addEventListener('yoso:sw-actualizado', () => {
+      this.toast.mostrar(
+        'actualizacion',
+        'Hay una versión nueva lista. Reinicia para aplicar los cambios.',
+        'info', 0, 'Actualización disponible',
+        { texto: 'REINICIAR', alClic: () => window.location.reload() },
+      )
+    })
   }
 
   mensajeSplash(mensaje: string, esError = false): void        { this.splash.mensaje(mensaje, esError) }

@@ -1,7 +1,10 @@
-const CACHE = 'yoso-v18'
+// yoso-dev es la versión de desarrollo: el plugin `versiona-sw` del build
+// reescribe la constante CACHE en dist/sw.js con yoso-<sha-git> — el navegador
+// detecta el cambio de bytes, reinstala el SW y el 'activate' purga las
+// cachés de versiones anteriores. Nunca se bumpea a mano.
+const CACHE = 'yoso-dev'
 
 // ORT wasm no va aquí: la variante se elige en runtime según el browser.
-// Tampoco hand_sign_y.jpg: la seña Y se genera inline desde signs.ts.
 const PRECACHE = [
   '/',
   '/YOSO.onnx',

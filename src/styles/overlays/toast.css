@@ -124,6 +124,30 @@
   color: var(--ink-sub);
 }
 
+/* Botón de acción (p. ej. REINICIAR tras actualización del Service Worker) */
+.toast__action-btn {
+  flex: none;
+  align-self: center;
+  margin-left: 4px;
+  padding: 7px 12px;
+  border: 1px solid rgba(91, 139, 213, 0.45);
+  border-radius: 8px;
+  background: rgba(91, 139, 213, 0.14);
+  color: #9DC1F5;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-out);
+}
+
+.toast__action-btn:hover {
+  background: rgba(91, 139, 213, 0.3);
+  border-color: rgba(91, 139, 213, 0.7);
+  color: #FFFFFF;
+}
+
 /* Progress Drain Bar */
 .toast__progress-track {
   position: absolute;

@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
-import { copyFile, mkdir, readFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'
+import { execSync } from 'node:child_process'
 import { gzip as gzipCb } from 'node:zlib'
 import { promisify } from 'node:util'
 
@@ -42,6 +43,30 @@ const copiaAssetsSelfHosted: Plugin = {
       await mkdir(dirname(destAbs), { recursive: true })
       await copyFile(srcAbs, destAbs)
     }
+  }
+}
+
+// Versión de caché del SW derivada del SHA de git: los bytes de sw.js cambian
+// en cada deploy → el navegador actualiza el SW → 'activate' borra las cachés
+// viejas. El public/sw.js del repo queda con 'yoso-dev' fijo (dev estable,
+// sin churn de bumps manuales en el historial).
+const versionaSW: Plugin = {
+  name: 'versiona-sw',
+  apply: 'build',
+  async closeBundle() {
+    const swPath = resolve(process.cwd(), 'dist/sw.js')
+    let sha = ''
+    try {
+      sha = execSync('git rev-parse --short HEAD').toString().trim()
+    } catch { /* sin git (p. ej. build desde tarball): usar timestamp */ }
+    const version = sha ? `yoso-${sha}` : `yoso-${Date.now().toString(36)}`
+    let code: string
+    try {
+      code = await readFile(swPath, 'utf8')
+    } catch { return }
+    const marca = "const CACHE = 'yoso-dev'"
+    if (!code.includes(marca)) return
+    await writeFile(swPath, code.replace(marca, `const CACHE = '${version}'`))
   }
 }
 
@@ -146,7 +171,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['onnxruntime-web', '@mediapipe/tasks-vision']
   },
-  plugins: [fixMissingSourceMaps, copiaAssetsSelfHosted, sirveAssetsSelfHostedDev],
+  plugins: [fixMissingSourceMaps, copiaAssetsSelfHosted, versionaSW, sirveAssetsSelfHostedDev],
   build: {
     sourcemap: false,
     target:    'es2022',

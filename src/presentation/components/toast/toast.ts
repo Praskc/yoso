@@ -24,7 +24,7 @@ export class Toast {
     this.root = document.getElementById('toast-root')
   }
 
-  mostrar(id: string, msg: string, tipo: TipoToast = 'info', dur = 5000, tituloPersonalizado?: string): void {
+  mostrar(id: string, msg: string, tipo: TipoToast = 'info', dur = 5000, tituloPersonalizado?: string, accion?: { texto: string; alClic: () => void }): void {
     if (!this.root) return
     this.ocultar(id)
 
@@ -50,12 +50,20 @@ export class Toast {
         </div>
         <p class="toast__msg">${msg}</p>
       </div>
+      ${accion ? `<button type="button" class="toast__action-btn">${accion.texto}</button>` : ''}
       ${dur > 0 ? `<div class="toast__progress-track"><div class="toast__progress-bar" style="animation-duration: ${dur}ms;"></div></div>` : ''}
     `
 
     el.querySelector<HTMLButtonElement>('.toast__close-btn')?.addEventListener('click', () => {
       this.ocultar(id)
     })
+
+    if (accion) {
+      el.querySelector<HTMLButtonElement>('.toast__action-btn')?.addEventListener('click', () => {
+        this.ocultar(id)
+        accion.alClic()
+      })
+    }
 
     this.root.appendChild(el)
 
