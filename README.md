@@ -5,7 +5,7 @@
 **Motor de reconocimiento de Lengua de Señas Colombiana (LSC) en tiempo real**
 *Inferencia edge · Sin servidor · < 10ms de latencia*
 
-[![Branch: main](https://img.shields.io/badge/rama-main-22C55E?style=flat-square)](https://github.com/Praskc/lsc-fingerspelling-edge/tree/main)
+[![Branch: main](https://img.shields.io/badge/rama-main-22C55E?style=flat-square)](https://github.com/Praskc/yoso/tree/main)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-Web-FF6F00?style=flat-square&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
@@ -18,8 +18,8 @@
 >
 > | Rama | Propósito |
 > |------|-----------|
-> | [`main`](https://github.com/Praskc/lsc-fingerspelling-edge/tree/main) | **Estable**: snapshot validado de `rolling`, se actualiza por merge manual |
-> | [`rolling`](https://github.com/Praskc/lsc-fingerspelling-edge/tree/rolling) | Activa: desarrollo continuo, self-hosted, todo lo nuevo entra aquí |
+> | [`main`](https://github.com/Praskc/yoso/tree/main) | **Estable**: snapshot validado de `rolling`, se actualiza por merge manual |
+> | [`rolling`](https://github.com/Praskc/yoso/tree/rolling) | Activa: desarrollo continuo, self-hosted, todo lo nuevo entra aquí |
 
 ## ¿Qué es YOSO?
 
@@ -142,7 +142,7 @@ Pre-cálculo de `invDp = 1/dp` reemplaza 42 divisiones por 42 multiplicaciones e
 |---------|-------|----------|----------|-----|
 | [ASL Alphabet](https://www.kaggle.com/datasets/grassknoted/asl-alphabet) | Akash (grassknoted) | GPL 2.0 | 87.000 | Base de entrenamiento |
 | [ASL Alphabet Dataset](https://www.kaggle.com/datasets/debashishsau/aslamerican-sign-language-aplhabet-dataset) | Debashish Sau | CC0 | ~270.000 | Base de entrenamiento |
-| Dataset LSC propio | Comunidad sorda colombiana | - | En recolección | Fine-tuning LSC |
+| Dataset LSC propio | Comunidad sorda colombiana | - | En recolección | Entrenamiento del motor LSC (refactor RNN) |
 
 ## Diferencias LSC vs ASL
 
@@ -152,6 +152,7 @@ El alfabeto manual colombiano tiene **32 configuraciones** para las 27 letras de
 |-------|------|------|
 | **F** | Estática diferente | Reentrenar con datos LSC |
 | **G** | Con movimiento | Configuración y movimiento distintos |
+| **H** | Con movimiento | Misma configuración que ASL; se distingue por el movimiento |
 | **J** | Con movimiento | Trayectoria similar a ASL |
 | **P** | Estática diferente | Reentrenar con datos LSC |
 | **Q** | Estática diferente | Reentrenar con datos LSC |
@@ -160,7 +161,7 @@ El alfabeto manual colombiano tiene **32 configuraciones** para las 27 letras de
 | **Z** | Con movimiento | Traza la Z en el aire |
 | **Ñ** | Con movimiento | No existe en ASL, clase nueva |
 
-Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU** ligera separada de la FCNN principal, diseñada para deployment en ESP32-S3.
+Las 6 letras con movimiento (G, H, J, S, Z, Ñ) requieren modelado temporal de trayectoria: un fotograma estático no las separa de su vecina (H comparte configuración con ASL y solo añade movimiento; Ñ comparte configuración con N). El plan actual es refactorizar el motor hacia RNNs; la FCNN por fotograma quedará como referencia histórica en una rama legacy cuando ese refactor esté desarrollado.
 
 ## Features de la aplicación
 
@@ -197,8 +198,6 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 │   │       ├── engine.worker.ts # Ruta CPU: MediaPipe WASM en hilo dedicado (hot-swap sin WebGL)
 │   │       └── protocol.ts     # Protocolo de mensajes worker ↔ hilo principal
 │   ├── presentation/
-│   │   ├── assets/
-│   │   │   └── sign-uris.ts    # Diagramas SVG del alfabeto (perspectiva observador)
 │   │   └── components/         # Un componente por carpeta
 │   │       ├── index.ts        # RenderizadorUI: orquesta todos los paneles
 │   │       ├── hud/            # HUD de predicción, métricas de mano y estado
@@ -226,7 +225,7 @@ Las 5 letras con movimiento (G, J, S, Z, Ñ) serán manejadas por una **rama GRU
 │   ├── YOSO.onnx               # Modelo exportado (2.4 MB)
 │   ├── Centroides.json         # Centroides + dist_ref P75 por clase
 │   ├── manifest.json           # PWA manifest
-│   ├── sw.js                   # Service Worker v12, cache-first assets, network-first navegación
+│   ├── sw.js                   # Service Worker: precache + stale-while-revalidate, offline completo
 │   ├── robots.txt
 │   └── favicon.svg
 ├── ml/
@@ -264,7 +263,7 @@ pnpm install
 pnpm dev
 ```
 
-Abre `http://localhost:5173` y permite acceso a la cámara.
+Abre `http://localhost:3000` y permite acceso a la cámara.
 
 ### Entrenamiento
 
@@ -323,9 +322,9 @@ El `nginx.conf` incluye:
 
 **SharedArrayBuffer**: ONNX Runtime WASM con `intraOpNumThreads: 2` requiere `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp`. Configurados en `vite.config.ts` (dev/preview) y `docker/nginx.conf` (producción).
 
-**Service Worker**: el modelo (2.4 MB) se precachea en la instalación del SW. Tras la primera carga la app funciona completamente offline. La versión de caché es `yoso-v12`.
+**Service Worker**: el modelo (2.4 MB) se precachea en la instalación del SW. Tras la primera carga la app funciona completamente offline. La versión de caché es `yoso-v18`.
 
-**Bundle particionado**: Vite produce chunks separados: `ort-*.js` (~402 KB), `mediapipe-*.js` (~132 KB), `index-*.js` (~37 KB). Updates de código de app preservan los caches de ORT y MediaPipe en el SW, reduciendo bytes re-descargados tras un deploy.
+**Bundle particionado**: Vite produce chunks separados: `ort-*.js` (~402 KB), `mediapipe-*.js` (~132 KB), `index-*.js` (~127 KB). Updates de código de app preservan los caches de ORT y MediaPipe en el SW, reduciendo bytes re-descargados tras un deploy.
 
 **WebGPU vs WASM SIMD**: Para este FCNN (~455K params), el overhead fijo de WebGPU (dispatch + sync + transferencia) excede el ahorro de compute. Se prefiere WASM SIMD con 2 hilos: latencia ~0.7ms vs ~10ms con WebGPU.
 
@@ -350,9 +349,9 @@ Implicancias:
 
 ## Changelog
 
-### v3.1.1: arquitectura por capas (actual)
+### v3.1.1: capas, motor dual y limpieza (actual)
 
-Reorganización de `src/` en capas adoptada de la PR #3: `app/` (entry point), `application/` (orquestador dual + accesibilidad), `domain/` (motor de inferencia y juego), `infrastructure/` (workers) y `presentation/` (un componente por carpeta + assets); `src/styles/` permanece en su lugar. Renombres kebab: `output-panel`, `learn-panel`, `debug-panel`, `sign-uris`. Solo movimientos de archivos, sin cambios de comportamiento: tsc 0 errores, 8/8 tests y bundle de producción bit-exacto (hashes idénticos pre/post).
+Motor dual GPU/worker: MediaPipe con delegate GPU en hilo principal, con hot-swap en caliente a un Web Worker WASM cuando la mediana de detección supera 22 ms. Frontend v12: panel traductor con anillo de confianza, accesibilidad, splash con 5 estados de error de cámara. Reorganización de `src/` en capas adoptada de la PR #3: `app/`, `application/`, `domain/`, `infrastructure/` y `presentation/` (un componente por carpeta); `src/styles/` permanece en su lugar. Se eliminan los diagramas SVG placeholder del modo entrenamiento (eran aproximaciones generadas, no señas reales). README corregido: H es dinámica en LSC (misma configuración que ASL + movimiento) y el roadmap apunta al refactor hacia RNNs. Verde: tsc 0 errores, 5/5 tests, build OK.
 
 ### v3.1: UI modular y performance frontend
 
@@ -377,16 +376,13 @@ JavaScript vanilla, hoy solo en el historial de git. Pipeline de 48 features con
 ## Roadmap
 
 ### En progreso
-- [ ] Recolección dataset LSC, 35 personas, 28 clases, colaboración con intérpretes certificados
-- [ ] Fine-tuning FCNN para 8 clases estáticas distintas entre ASL y LSC
-- [ ] GRU unidireccional para 5 letras con movimiento (J, Ñ, S, G, Z)
+- [ ] Refactor del motor hacia RNNs: modelado temporal para las 6 letras con movimiento (G, H, J, S, Z, Ñ); la FCNN por fotograma actual quedará como referencia histórica en una rama legacy
+- [ ] Migración a LSC: alfabeto de 27 letras (A-Z + Ñ), dataset con la comunidad sorda colombiana
 
 ### Siguiente fase
-- [ ] Migración de MediaPipe Tasks-Vision a Web Worker con OffscreenCanvas: libera ~7ms/frame del main thread
-- [ ] Cuantización INT8 para deployment en ESP32-S3, TinyML edge
-- [ ] Panel de referencia visual con todas las señas LSC
+- [ ] Panel de referencia visual con las señas LSC reales
 - [ ] Coordenada Z de MediaPipe en extracción de features
-- [ ] Features de curvatura e ángulos inter-dedo para M/N/E/S
+- [ ] Features de curvatura y ángulos inter-dedo para M/N/E/S
 
 ## Contexto
 

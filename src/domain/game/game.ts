@@ -1,4 +1,3 @@
-import { signURI }  from '../../presentation/assets/sign-uris'
 import { BORRAR }   from '../recognition/inference'
 
 const NIVELES = [
@@ -60,7 +59,6 @@ export class GameManager {
   private readonly elNivel:       HTMLElement
   private readonly elProgreso:    HTMLElement
   private readonly elProgresoBar: HTMLElement
-  private readonly elImagenPista: HTMLImageElement
 
   private nivelIdx:     number   = 0
   private puntos:       number   = 0
@@ -70,7 +68,6 @@ export class GameManager {
   private errores:      number   = 0
   private bloqueado:    boolean  = false
   private activo:       boolean  = false
-  private timerPista:   number   = 0
   private pool:         string[] = []
   private racha:        number   = 0
 
@@ -90,7 +87,6 @@ export class GameManager {
     this.elNivel       = document.getElementById('nivel-label')!
     this.elProgreso    = document.getElementById('progreso-texto')!
     this.elProgresoBar = document.getElementById('progreso-bar')!
-    this.elImagenPista = document.getElementById('imagen-pista') as HTMLImageElement
 
     window.addEventListener('yoso:juego:saltar', () => this.omitirPalabra())
     window.addEventListener('yoso:juego:anterior', () => this.palabraAnterior())
@@ -101,8 +97,6 @@ export class GameManager {
     if (!this.activo || this.bloqueado) return
     this.racha = 0
     this._emitir({ tipo: 'omitida', palabra: this.palabraActual })
-    clearTimeout(this.timerPista)
-    this.elImagenPista.classList.remove('visible')
     this._setFeedback('PALABRA OMITIDA', 'warn')
     this.bloqueado = true
     window.setTimeout(() => { if (this.activo) this._nuevaPalabra() }, 300)
@@ -115,8 +109,6 @@ export class GameManager {
     if (this.palabraActual && this.palabraActual !== prev) {
       this.pool.push(this.palabraActual)
     }
-    clearTimeout(this.timerPista)
-    this.elImagenPista.classList.remove('visible')
     this.bloqueado = false
     this.letraIdx = 0
     this.errores = 0
@@ -128,8 +120,6 @@ export class GameManager {
 
   public siguientePalabra(): void {
     if (!this.activo) return
-    clearTimeout(this.timerPista)
-    this.elImagenPista.classList.remove('visible')
     this._nuevaPalabra()
   }
 
@@ -147,8 +137,6 @@ export class GameManager {
 
   public desactivar(): void {
     this.activo = false
-    clearTimeout(this.timerPista)
-    this.elImagenPista.classList.remove('visible')
   }
 
   public onLetraConfirmada(letra: string): void {
@@ -232,8 +220,6 @@ export class GameManager {
   }
 
   private _nuevaPalabra(): void {
-    clearTimeout(this.timerPista)
-    this.elImagenPista.classList.remove('visible')
     this.bloqueado = false
     this.letraIdx  = 0
     this.elNivel.textContent = NIVELES[this.nivelIdx].label
@@ -255,13 +241,6 @@ export class GameManager {
     this._renderPalabra()
     this._renderProgreso()
     this._setFeedback('HAZ LA SEÑA...', 'idle')
-
-    this.timerPista = window.setTimeout(() => {
-      if (this.activo && !this.bloqueado) {
-        this.elImagenPista.classList.add('visible')
-        this._setFeedback('MIRA LA GUÍA', 'warn')
-      }
-    }, 6000)
   }
 
   private _letraCorrecta(): void {
@@ -279,8 +258,6 @@ export class GameManager {
       this.elPuntuacion.classList.remove('score-bump')
       void this.elPuntuacion.offsetWidth
       this.elPuntuacion.classList.add('score-bump')
-      clearTimeout(this.timerPista)
-      this.elImagenPista.classList.remove('visible')
 
       const nivel = NIVELES[this.nivelIdx]
       if (this.palabrasOk >= nivel.req && this.nivelIdx < NIVELES.length - 1) {
@@ -312,8 +289,6 @@ export class GameManager {
       this.bloqueado = true
       this.racha = 0
       this._emitir({ tipo: 'omitida', palabra: this.palabraActual })
-      clearTimeout(this.timerPista)
-      this.elImagenPista.classList.remove('visible')
       this._setFeedback('PALABRA OMITIDA', 'warn')
       window.setTimeout(() => { if (this.activo) this._nuevaPalabra() }, 1200)
       return
@@ -337,9 +312,6 @@ export class GameManager {
                        :                       'gw-pending'
       this.elObjetivo.appendChild(span)
     })
-    if (this.letraIdx < this.palabraActual.length) {
-      this.elImagenPista.src = signURI(this.palabraActual[this.letraIdx])
-    }
   }
 
   private _renderProgreso(): void {

@@ -768,14 +768,6 @@
   100% { opacity: 1; transform: translateX(0) scale(1); }
 }
 
-.history-chip__sign {
-  width: 14px;
-  height: 18px;
-  object-fit: contain;
-  opacity: 0.9;
-  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.4));
-}
-
 .history-chip__check {
   font-size: 9.5px;
   color: #86EFAC;

@@ -1,4 +1,3 @@
-import { signURI } from '../../assets/sign-uris'
 
 // Nodos para viewBox 0 0 340 104 — Mayor altura, amplitud y legibilidad de texto
 const CONSTELLATION_NODES = [
@@ -70,7 +69,6 @@ export class GamePanel {
         <span class="feedback-dot"></span>
         <span class="feedback-text"></span>
       </div>
-      <img id="imagen-pista" hidden alt="" style="display:none!important"/>
       <div class="levels" id="levels-block">
         <div class="levels__head">
           <span class="levels__label">PROGRESIÓN DE NIVEL</span>
@@ -242,13 +240,9 @@ export class GamePanel {
     if (prev) prev.classList.remove('history__word--latest')
 
     // Chip real con animación de deslizamiento + bounce
-    const firstLetter = limpia[0] || 'A'
-    const signSrc = signURI(firstLetter)
-
     const chip = document.createElement('div')
     chip.className = 'history-chip history-chip--enter history__word--latest'
     chip.innerHTML = `
-      <img class="history-chip__sign" src="${signSrc}" alt="${firstLetter}" aria-hidden="true" />
       <span class="history-chip__check">✓</span>
       <span class="history-chip__word">${limpia.toLowerCase()}</span>
       <span class="history-chip__pts">+${pts}</span>
