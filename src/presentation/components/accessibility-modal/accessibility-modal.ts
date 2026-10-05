@@ -85,7 +85,7 @@ export class AccessibilityModal {
           </button>
 
           <!-- 3. Lector de voz (TTS MinTIC) -->
-          <button class="a11y-gov-row" id="a11y-btn-tts" type="button" role="menuitem" title="Leer transcripción actual en voz alta (Alt + L)">
+          <button class="a11y-gov-row" id="a11y-btn-tts" type="button" role="menuitem" aria-pressed="false" title="Activar o silenciar el lector de voz (Alt + L lee la transcripción en voz alta)">
             <span class="a11y-gov-row__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -282,10 +282,13 @@ export class AccessibilityModal {
       this.updateUI()
     })
 
-    // 3. Lector de voz (TTS)
+    // 3. Lector de voz (TTS): toggle real de síntesis de voz.
+    // Al activar lee la transcripción como confirmación; al desactivar,
+    // toggleTTS() cancela cualquier locución en curso (detenerTTS).
     document.getElementById('a11y-btn-tts')?.addEventListener('click', (e) => {
       e.stopPropagation()
-      this.leerTranscripcionActual()
+      const activo = a11y.toggleTTS()
+      if (activo) this.leerTranscripcionActual()
       this.updateUI()
     })
 
@@ -435,6 +438,7 @@ export class AccessibilityModal {
     }
 
     // Toggle items active state
+    this.setItemActive('a11y-btn-tts', state.ttsHabilitado)
     this.setItemActive('a11y-btn-grayscale', state.escalaGrises)
     this.setItemActive('a11y-btn-contrast', state.altoContraste)
     this.setItemActive('a11y-btn-light', state.modoClaro)
@@ -451,6 +455,7 @@ export class AccessibilityModal {
     const el = document.getElementById(id)
     if (el) {
       el.classList.toggle('is-active', active)
+      el.setAttribute('aria-pressed', String(active))
     }
   }
 }
