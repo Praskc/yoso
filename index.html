@@ -19,6 +19,8 @@
   <link rel="stylesheet" href="/src/styles/index.css">
 </head>
 <body>
+  <!-- Enlace accesible de salto al contenido (MinTIC Directrices CC10) -->
+  <a href="#app-main" class="skip-link">Saltar al contenido principal</a>
 
   <!-- Splash Screen (Apéndice A.5) -->
   <div id="splash-screen">
@@ -99,16 +101,6 @@
         </button>
       </nav>
       <div class="topbar__actions">
-        <!-- Botón Accesibilidad Universal (Inspirado en la barra accesible) -->
-        <button class="topbar__btn-a11y" id="topbar-btn-a11y" data-a11y-trigger="true" type="button" aria-label="Menú de Accesibilidad" title="Opciones de Accesibilidad e Inclusión">
-          <svg viewBox="0 0 512 512" width="24" height="24">
-            <circle cx="256" cy="256" r="246" fill="#1D4ED8"/>
-            <circle cx="256" cy="256" r="212" stroke="#FFFFFF" stroke-width="24" fill="none"/>
-            <circle cx="256" cy="144" r="36" fill="#FFFFFF"/>
-            <path d="M136 182 C196 194 316 194 376 182 C386 180 392 195 382 205 C342 220 300 220 292 240 L292 300 L318 382 C323 398 303 408 292 393 L256 318 L220 393 C209 408 189 398 194 382 L220 300 L220 240 C212 220 170 220 130 205 C120 195 126 180 136 182 Z" fill="#FFFFFF"/>
-          </svg>
-        </button>
-
         <div class="topbar__pill-btn topbar__locale-pill" id="topbar-pill-action" role="status" title="Lengua de Señas Colombiana (LSC)">
           <svg class="topbar__flag" width="20" height="14" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Bandera de Colombia">
             <rect width="20" height="7" fill="#FCD116"/>
@@ -193,6 +185,13 @@
         <div id="transcript-block" class="transcript">
           <div class="transcript__head">
             <span class="transcript__label">transcripción</span>
+            <button class="transcript__clear" id="transcript-btn-clear" type="button" aria-label="Borrar toda la transcripción" title="Borrar todo el texto">
+              <svg class="transcript__clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-2 14H7L5 6"/>
+              </svg>
+              <span>limpiar</span>
+            </button>
           </div>
           <div class="transcript__text" id="final-text" aria-live="polite"><span class="transcript__caret"></span></div>
         </div>

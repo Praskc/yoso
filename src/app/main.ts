@@ -14,23 +14,51 @@ try {
   }
 } catch {}
 
-// PWA: registro del Service Worker (precache + stale-while-revalidate del modelo).
-// Las cachés de versiones anteriores las borra el propio SW en 'activate',
-// por eso ya no se unregister-an cachés/SW globales en cada carga.
-// La versión de caché la inyecta el build ('yoso-<sha>'), nunca se bumpea a mano.
+// PWA: registro del Service Worker con actualización inmediata y notificación de toast
 if ('serviceWorker' in navigator) {
+  let toastDisparado = false
+  const dispararToastActualizacion = () => {
+    if (toastDisparado) return
+    toastDisparado = true
+    window.dispatchEvent(new CustomEvent('yoso:sw-actualizado'))
+  }
+
+  // 1. Notificación directa por postMessage del Service Worker al activarse una nueva versión
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'SW_ACTIVADO') {
+      dispararToastActualizacion()
+    }
+  })
+
+  // 2. Control del ciclo de vida y updates
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(reg => {
-      // Visitas nuevas: el primer controllerchange es el claim inicial, no una
-      // actualización. Solo las tomas de control posteriores son versión nueva.
+      // Si ya hay un worker en espera (descargado previamente)
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        dispararToastActualizacion()
+      }
+
+      // Si se encuentra una nueva versión instalándose
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing
+        if (!newWorker) return
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            dispararToastActualizacion()
+          }
+        })
+      })
+
+      // Cuando el nuevo SW toma el control de los clientes
       let primeraToma = !navigator.serviceWorker.controller
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (primeraToma) { primeraToma = false; return }
-        window.dispatchEvent(new CustomEvent('yoso:sw-actualizado'))
+        dispararToastActualizacion()
       })
-      // Pestañas abiertas por horas: el navegador solo chequea sw.js al navegar
-      // (máx. 1 vez / 24 h), así que forzamos el chequeo cada 60 min.
-      window.setInterval(() => { void reg.update().catch(() => {}) }, 60 * 60 * 1000)
+
+      // Chequeo forzado inmediato y periódico
+      void reg.update()
+      window.setInterval(() => { void reg.update().catch(() => {}) }, 5 * 60 * 1000)
     }).catch(() => {})
   })
 }

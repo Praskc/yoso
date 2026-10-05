@@ -56,13 +56,13 @@
   --font-ui:          'Geist Variable', system-ui, sans-serif;
   --font-mono:        'Geist Mono Variable', ui-monospace, monospace;
 
-  /* Escala tipográfica */
-  --text-hero:        8rem;     /* 128px */
-  --text-h1:          2.5rem;   /* 40px */
-  --text-h2:          1.75rem;  /* 28px */
-  --text-body:        1rem;     /* 16px */
-  --text-small:       0.875rem; /* 14px */
-  --text-micro:       0.75rem;  /* 12px */
+  /* Escala tipográfica adaptativa con accesibilidad MinTIC (hasta 200%) */
+  --text-hero:        calc(8rem * var(--a11y-scale, 1));
+  --text-h1:          calc(2.5rem * var(--a11y-scale, 1));
+  --text-h2:          calc(1.75rem * var(--a11y-scale, 1));
+  --text-body:        calc(1rem * var(--a11y-scale, 1));
+  --text-small:       calc(0.875rem * var(--a11y-scale, 1));
+  --text-micro:       calc(0.75rem * var(--a11y-scale, 1));
 
   /* Breakpoints y Anchos de Pantalla */
   --breakpoint-wide:  1520px;

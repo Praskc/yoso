@@ -241,6 +241,11 @@ export class OutputPanel {
       this.agregarLetra('', true)
     })
 
+    document.getElementById('transcript-btn-clear')?.addEventListener('click', () => {
+      this.limpiarTexto()
+      window.dispatchEvent(new CustomEvent('yoso:texto-clear'))
+    })
+
     const copyBtn = document.getElementById('btn-def-copy')
     const copyLabel = document.getElementById('btn-copy-label')
     copyBtn?.addEventListener('click', async () => {

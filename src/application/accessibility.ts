@@ -1,22 +1,28 @@
 export interface AccessibilityState {
-  fontSizeDelta: number // -2, -1, 0, +1, +2, +3, +4
-  lineHeightDelta: number // 0, +1, +2, +3, +4
-  letterSpacingDelta: number // 0, +1, +2, +3, +4
+  fontSizeDelta: number // -2, -1, 0, +1, +2, +3, +4, +5, +6
+  lineHeightDelta: number // 0, +1, +2, +3, +4, +5
+  letterSpacingDelta: number // 0, +1, +2, +3, +4, +5
   altoContraste: boolean
   invertirColores: boolean
   escalaGrises: boolean
+  modoClaro: boolean
   resaltarEnlaces: boolean
   resaltarTitulos: boolean
   fuenteLegible: boolean
+  fuenteDislexia: boolean
   ocultarImagenes: boolean
   sinAnimaciones: boolean
   cursorGrande: boolean
+  guiaLectura: boolean
+  focoDestacado: boolean
   ocultarHastaTimestamp: number // Para ocultar 1h, 8h, 24h
   ttsHabilitado: boolean
+  ttsVelocidad: number // 0.8, 1.0, 1.3
+  ttsLecturaAutomatica: boolean
   flashVisual: boolean
 }
 
-const STORAGE_KEY = 'yoso_accessibility_v3'
+const STORAGE_KEY = 'yoso_accessibility_v4'
 
 const DEFAULT_STATE: AccessibilityState = {
   fontSizeDelta: 0,
@@ -25,24 +31,34 @@ const DEFAULT_STATE: AccessibilityState = {
   altoContraste: false,
   invertirColores: false,
   escalaGrises: false,
+  modoClaro: false,
   resaltarEnlaces: false,
   resaltarTitulos: false,
   fuenteLegible: false,
+  fuenteDislexia: false,
   ocultarImagenes: false,
   sinAnimaciones: false,
   cursorGrande: false,
+  guiaLectura: false,
+  focoDestacado: true,
   ocultarHastaTimestamp: 0,
   ttsHabilitado: true,
+  ttsVelocidad: 1.0,
+  ttsLecturaAutomatica: true,
   flashVisual: true,
 }
 
 export class AccessibilityService {
   private static instance: AccessibilityService
   private state: AccessibilityState
+  private _flashTimer: number | null = null
+  private _guiaEl: HTMLElement | null = null
+  private _mouseMoveHandler: ((e: MouseEvent) => void) | null = null
 
   private constructor() {
     this.state = this.cargarState()
     this.aplicarClasesDOM()
+    this.inicializarEventosGlobales()
   }
 
   static getInstance(): AccessibilityService {
@@ -62,9 +78,9 @@ export class AccessibilityService {
     this.aplicarClasesDOM()
   }
 
-  // Ajustes incrementales de texto
+  // Ajustes incrementales de texto (WCAG / MinTIC CC4: pasos de 10% hasta 200%)
   ajustarFontSize(delta: number): number {
-    const val = Math.max(-2, Math.min(6, this.state.fontSizeDelta + delta))
+    const val = Math.max(-2, Math.min(10, this.state.fontSizeDelta + delta))
     this.actualizar({ fontSizeDelta: val })
     return val
   }
@@ -81,10 +97,10 @@ export class AccessibilityService {
     return val
   }
 
-  // Toggles de Contraste y Color
+  // Toggles de Contraste y Color (WCAG / MinTIC CC5)
   toggleAltoContraste(): boolean {
     const val = !this.state.altoContraste
-    this.actualizar({ altoContraste: val, invertirColores: false })
+    this.actualizar({ altoContraste: val, invertirColores: false, modoClaro: false })
     return val
   }
 
@@ -97,6 +113,12 @@ export class AccessibilityService {
   toggleEscalaGrises(): boolean {
     const val = !this.state.escalaGrises
     this.actualizar({ escalaGrises: val })
+    return val
+  }
+
+  toggleModoClaro(): boolean {
+    const val = !this.state.modoClaro
+    this.actualizar({ modoClaro: val, altoContraste: false })
     return val
   }
 
@@ -114,11 +136,17 @@ export class AccessibilityService {
 
   toggleFuenteLegible(): boolean {
     const val = !this.state.fuenteLegible
-    this.actualizar({ fuenteLegible: val })
+    this.actualizar({ fuenteLegible: val, fuenteDislexia: false })
     return val
   }
 
-  // Toggles de Elementos de Página
+  toggleFuenteDislexia(): boolean {
+    const val = !this.state.fuenteDislexia
+    this.actualizar({ fuenteDislexia: val, fuenteLegible: false })
+    return val
+  }
+
+  // Toggles de Elementos de Página y Ayudas
   toggleOcultarImagenes(): boolean {
     const val = !this.state.ocultarImagenes
     this.actualizar({ ocultarImagenes: val })
@@ -134,6 +162,45 @@ export class AccessibilityService {
   toggleCursorGrande(): boolean {
     const val = !this.state.cursorGrande
     this.actualizar({ cursorGrande: val })
+    return val
+  }
+
+  toggleGuiaLectura(): boolean {
+    const val = !this.state.guiaLectura
+    this.actualizar({ guiaLectura: val })
+    this.actualizarGuiaLecturaDOM()
+    return val
+  }
+
+  toggleFocoDestacado(): boolean {
+    const val = !this.state.focoDestacado
+    this.actualizar({ focoDestacado: val })
+    return val
+  }
+
+  // Toggles de TTS y Audio / Visual
+  toggleTTS(): boolean {
+    const val = !this.state.ttsHabilitado
+    this.actualizar({ ttsHabilitado: val })
+    if (!val) {
+      this.detenerTTS()
+    }
+    return val
+  }
+
+  setTTSVelocidad(velocidad: number): void {
+    this.actualizar({ ttsVelocidad: velocidad })
+  }
+
+  toggleTTSLecturaAutomatica(): boolean {
+    const val = !this.state.ttsLecturaAutomatica
+    this.actualizar({ ttsLecturaAutomatica: val })
+    return val
+  }
+
+  toggleFlashVisual(): boolean {
+    const val = !this.state.flashVisual
+    this.actualizar({ flashVisual: val })
     return val
   }
 
@@ -156,6 +223,8 @@ export class AccessibilityService {
     this.state = { ...DEFAULT_STATE, ocultarHastaTimestamp: this.state.ocultarHastaTimestamp }
     this.guardarState()
     this.aplicarClasesDOM()
+    this.actualizarGuiaLecturaDOM()
+    this.detenerTTS()
   }
 
   private cargarState(): AccessibilityState {
@@ -182,12 +251,12 @@ export class AccessibilityService {
     const root = document.documentElement
     const body = document.body
 
-    // 1. Tamaño de fuente, altura de línea, espaciado
-    const baseScale = 1 + (this.state.fontSizeDelta * 0.08)
+    // 1. Tamaño de fuente (escala accesible MinTIC CC4: pasos de 10% de 80% a 200%)
+    const baseScale = Math.max(0.80, Math.min(2.0, 1.0 + (this.state.fontSizeDelta * 0.10)))
     const lineHeightVal = 1.4 + (this.state.lineHeightDelta * 0.15)
     const letterSpacingVal = `${this.state.letterSpacingDelta * 0.05}em`
 
-    root.style.setProperty('--a11y-scale', `${baseScale}`)
+    root.style.setProperty('--a11y-scale', `${baseScale.toFixed(2)}`)
     root.style.setProperty('--a11y-line-height', `${lineHeightVal}`)
     root.style.setProperty('--a11y-letter-spacing', letterSpacingVal)
 
@@ -201,47 +270,125 @@ export class AccessibilityService {
     // 4. Escala de grises
     root.classList.toggle('a11y-grayscale', this.state.escalaGrises)
 
-    // 5. Resaltar enlaces
+    // 5. Modo claro accesible
+    root.classList.toggle('a11y-light-mode', this.state.modoClaro)
+    body.classList.toggle('a11y-light-mode', this.state.modoClaro)
+
+    // 6. Resaltar enlaces
     root.classList.toggle('a11y-highlight-links', this.state.resaltarEnlaces)
 
-    // 6. Resaltar títulos
+    // 7. Resaltar títulos
     root.classList.toggle('a11y-highlight-headings', this.state.resaltarTitulos)
 
-    // 7. Fuente legible
+    // 8. Fuente legible / dislexia
     root.classList.toggle('a11y-readable-font', this.state.fuenteLegible)
+    root.classList.toggle('a11y-dyslexia-font', this.state.fuenteDislexia)
 
-    // 8. Ocultar imágenes
+    // 9. Ocultar imágenes
     root.classList.toggle('a11y-hide-images', this.state.ocultarImagenes)
 
-    // 9. Sin animaciones
+    // 10. Sin animaciones (reducir movimiento)
     root.classList.toggle('a11y-no-animations', this.state.sinAnimaciones)
 
-    // 10. Cursor grande
+    // 11. Cursor grande
     root.classList.toggle('a11y-big-cursor', this.state.cursorGrande)
+
+    // 12. Foco destacado (MinTIC CC17)
+    root.classList.toggle('a11y-focus-visible', this.state.focoDestacado)
   }
 
-  // Notificaciones de feedback
+  private inicializarEventosGlobales(): void {
+    // Atajo de teclado: Alt + A para abrir accesibilidad
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('yoso:a11y:toggle'))
+      } else if (e.altKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('yoso:a11y:read-text'))
+      }
+    })
+  }
+
+  private actualizarGuiaLecturaDOM(): void {
+    if (this.state.guiaLectura) {
+      if (!this._guiaEl) {
+        const el = document.createElement('div')
+        el.id = 'a11y-reading-guide'
+        el.className = 'a11y-reading-guide'
+        document.body.appendChild(el)
+        this._guiaEl = el
+      }
+      this._guiaEl.style.display = 'block'
+      if (!this._mouseMoveHandler) {
+        this._mouseMoveHandler = (e: MouseEvent) => {
+          if (this._guiaEl) {
+            this._guiaEl.style.top = `${e.clientY}px`
+          }
+        }
+        window.addEventListener('mousemove', this._mouseMoveHandler, { passive: true })
+      }
+    } else {
+      if (this._guiaEl) {
+        this._guiaEl.style.display = 'none'
+      }
+      if (this._mouseMoveHandler) {
+        window.removeEventListener('mousemove', this._mouseMoveHandler)
+        this._mouseMoveHandler = null
+      }
+    }
+  }
+
+  // ── Síntesis de Voz (TTS) ──────────────────────────────────────────────────
+  leerTexto(texto: string): void {
+    if (!('speechSynthesis' in window)) return
+    const limpio = texto.trim()
+    if (!limpio) return
+
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(limpio)
+    u.lang = 'es-CO'
+    u.rate = this.state.ttsVelocidad
+    u.pitch = 1.0
+
+    // Intentar seleccionar voz en español
+    const voces = window.speechSynthesis.getVoices()
+    const vozEs = voces.find(v => v.lang.startsWith('es-CO') || v.lang.startsWith('es-419') || v.lang.startsWith('es'))
+    if (vozEs) u.voice = vozEs
+
+    window.speechSynthesis.speak(u)
+  }
+
+  detenerTTS(): void {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+  }
+
   notificarLetraCapturada(letra: string): void {
     if (this.state.flashVisual) {
       this.dispararFlashVisual()
     }
-    if (this.state.ttsHabilitado && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
+    if (this.state.ttsHabilitado && this.state.ttsLecturaAutomatica && 'speechSynthesis' in window) {
       const u = new SpeechSynthesisUtterance(letra)
       u.lang = 'es-CO'
+      u.rate = this.state.ttsVelocidad
+      window.speechSynthesis.cancel()
       window.speechSynthesis.speak(u)
     }
   }
 
   notificarPalabra(palabra: string): void {
-    if (this.state.ttsHabilitado && 'speechSynthesis' in window && palabra.trim()) {
-      window.speechSynthesis.cancel()
+    if (this.state.ttsHabilitado && this.state.ttsLecturaAutomatica && 'speechSynthesis' in window && palabra.trim()) {
       const u = new SpeechSynthesisUtterance(palabra.trim())
       u.lang = 'es-CO'
+      u.rate = this.state.ttsVelocidad
+      window.speechSynthesis.cancel()
       window.speechSynthesis.speak(u)
     }
   }
 
+  // Corrección crítica del halo verde: garantizar timeout seguro y remover la clase
   dispararFlashVisual(): void {
     let flashEl = document.getElementById('a11y-screen-flash')
     if (!flashEl) {
@@ -250,9 +397,20 @@ export class AccessibilityService {
       flashEl.className = 'a11y-screen-flash'
       document.body.appendChild(flashEl)
     }
+
+    if (this._flashTimer !== null) {
+      window.clearTimeout(this._flashTimer)
+      this._flashTimer = null
+    }
+
     flashEl.classList.remove('is-active')
     void flashEl.offsetWidth
     flashEl.classList.add('is-active')
+
+    this._flashTimer = window.setTimeout(() => {
+      flashEl?.classList.remove('is-active')
+      this._flashTimer = null
+    }, 450)
   }
 }
 

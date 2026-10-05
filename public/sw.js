@@ -1,24 +1,19 @@
-// yoso-dev es la versión de desarrollo: el plugin `versiona-sw` del build
-// reescribe la constante CACHE en dist/sw.js con yoso-<sha-git> — el navegador
-// detecta el cambio de bytes, reinstala el SW y el 'activate' purga las
-// cachés de versiones anteriores. Nunca se bumpea a mano.
-const CACHE = 'yoso-dev'
+// Versión de caché invalidada para forzar actualización inmediata en el navegador
+const CACHE = 'yoso-v22-sincelejo-colab'
 
-// ORT wasm no va aquí: la variante se elige en runtime según el browser.
+// Assets pre-cacheados
 const PRECACHE = [
   '/',
-  '/YOSO.onnx',
-  '/Centroides.json',
   '/favicon.svg',
   '/manifest.json',
+  '/YOSO.onnx',
+  '/Centroides.json',
   '/mediapipe/hand_landmarker.task',
   '/mediapipe/vision_wasm_internal.js',
   '/mediapipe/vision_wasm_internal.wasm',
 ]
 
-// Assets que usan stale-while-revalidate: servir de caché inmediatamente
-// pero re-descargar en background para la próxima visita.
-const SWR_ASSETS = new Set(['/YOSO.onnx', '/Centroides.json'])
+const SWR_ASSETS = new Set(['/YOSO.onnx', '/Centroides.json', '/mediapipe/hand_landmarker.task'])
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -37,14 +32,32 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE).map(k => {
+          console.log('[SW] Purgando caché obsoleta:', k)
+          return caches.delete(k)
+        })
       ))
+      .then(() => self.clients.claim())
+      .then(() => {
+        // Notificar a las ventanas abiertas que la nueva versión está activa para disparar el toast
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          for (const client of clients) {
+            client.postMessage({ type: 'SW_ACTIVADO', cache: CACHE })
+          }
+        })
+      })
       .catch(() => {})
   )
-  self.clients.claim()
+})
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 function guardarEnCache(req, res) {
+  if (!res || res.status !== 200 || res.type !== 'basic') return
   const clone = res.clone()
   caches.open(CACHE)
     .then(c => c.put(req, clone))
@@ -52,7 +65,6 @@ function guardarEnCache(req, res) {
 }
 
 function safeMatch(req) {
-  // caches.match puede rechazar en algunos contextos (ServiceWorker sin scope correcto)
   try {
     return caches.match(req).catch(() => undefined)
   } catch {
@@ -72,35 +84,33 @@ self.addEventListener('fetch', e => {
 
   if (!url.protocol.startsWith('http')) return
 
-  if (e.request.mode === 'navigate') {
+  // 1. Navegación (HTML): Network first para que cualquier cambio en la interfaz se vea de inmediato
+  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     e.respondWith(
       fetch(e.request)
         .then(res => {
           if (res.ok) guardarEnCache(e.request, res)
           return res
         })
-        .catch(() =>
-          safeMatch(e.request)
-            .then(c => c ?? safeMatch('/'))
-            .then(c => c ?? new Response(
-              '<!doctype html><html lang="es"><meta charset="utf-8">' +
-              '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-              '<title>YOSO sin conexión</title>' +
-              '<style>body{margin:0;display:grid;place-items:center;min-height:100vh;' +
-              'background:#192A4B;color:#F0F4FC;font:500 15px/1.5 system-ui,sans-serif;' +
-              'text-align:center;padding:24px}h1{margin:0 0 12px;font-size:20px;color:#5B8BD5}' +
-              'p{margin:0;max-width:32ch;opacity:.8}</style>' +
-              '<h1>YOSO sin conexión</h1>' +
-              '<p>No hay red ni copia en caché. Reintenta cuando recuperes la conexión.</p>',
-              { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-            ))
-        )
+        .catch(() => safeMatch(e.request).then(c => c ?? safeMatch('/')))
     )
     return
   }
 
-  // Stale-while-revalidate para modelo y centroides:
-  // sirve de caché al instante, pero revalida en background.
+  // 2. Archivos de código (JS/TS/CSS): Network first para evitar que el navegador quede trabado en código viejo
+  if (url.pathname.startsWith('/src/') || url.pathname.endsWith('.ts') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) guardarEnCache(e.request, res)
+          return res
+        })
+        .catch(() => safeMatch(e.request))
+    )
+    return
+  }
+
+  // 3. Stale-while-revalidate para pesos pesados del modelo ONNX y Mediapipe
   if (SWR_ASSETS.has(url.pathname)) {
     e.respondWith(
       safeMatch(e.request).then(cached => {
@@ -115,14 +125,13 @@ self.addEventListener('fetch', e => {
     return
   }
 
-  // Assets Vite van hasheados (inmutables), los no hasheados se invalidan subiendo CACHE.
+  // 4. Resto de assets
   e.respondWith(
-    safeMatch(e.request).then(cached => {
-      if (cached) return cached
-      return fetch(e.request).then(res => {
+    fetch(e.request)
+      .then(res => {
         if (res.ok) guardarEnCache(e.request, res)
         return res
-      }).catch(() => new Response('', { status: 503 }))
-    })
+      })
+      .catch(() => safeMatch(e.request))
   )
 })
