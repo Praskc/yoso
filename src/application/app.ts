@@ -107,7 +107,7 @@ export class YOSOApp {
         centroides,
         callbacks: {
           alConfirmarLetra:  (l)                              => this._alConfirmarLetra(l),
-          alDetectarLetra:   (l, c, lat, _latP, esIzquierda) => this._alDetectarLetra(l, c, lat, esIzquierda),
+          alDetectarLetra:   (l, c, esIzquierda)               => this._alDetectarLetra(l, c, esIzquierda),
           alActualizarDebug: (p)                              => this.ui.actualizarDebug(p)
         }
       })
@@ -280,7 +280,6 @@ export class YOSOApp {
     this.ui.setLive(!document.hidden)
     if (document.hidden) {
       this.motor.reiniciar(true)
-      this.ui.estadoListo('idle')
       this.ui.limpiarMano()
     }
   }
@@ -431,8 +430,8 @@ export class YOSOApp {
     })
   }
 
-  private _alDetectarLetra(letra: string, confianza: number, latencia: number, esIzquierda: boolean): void {
-    this.ui.actualizarPrediccion(letra, confianza, latencia, esIzquierda)
+  private _alDetectarLetra(letra: string, confianza: number, esIzquierda: boolean): void {
+    this.ui.actualizarPrediccion(letra, confianza, esIzquierda)
     if (this.modo === 'aprendizaje') {
       letra !== '-' ? this.ui.resaltarSena(letra) : this.ui.limpiarSena()
     } else if (this.modo === 'entrenamiento') {
@@ -490,26 +489,26 @@ export class YOSOApp {
       this.ui.actualizarROI(fueraZona)
 
       if (fueraZona) {
-        this.ui.estadoListo('warning')
+        this.ui.setLive(true)
         this.ui.limpiarMano()
         this.motor.reiniciar()
         this.ctx.restore()
         return
       }
 
-      this.ui.estadoListo('signing')
+      this.ui.setLive(true)
 
       const muneca = puntos[0]
       const jitter = Math.abs(muneca.x - this.prevMunecaX) + Math.abs(muneca.y - this.prevMunecaY)
       this.prevMunecaX = muneca.x
       this.prevMunecaY = muneca.y
 
-      this.ui.estadoMano(jitter > 0.03 ? 'Inestable' : 'Óptimo', jitter <= 0.03)
+      this.ui.estadoMano(jitter <= 0.03)
 
       void this.motor.procesar(puntos, lateralidad, jitter)
 
     } else {
-      this.ui.estadoListo('idle')
+      this.ui.setLive(true)
       this.ui.limpiarROI()
       this.ui.limpiarMano()
       this.motor.reiniciar()

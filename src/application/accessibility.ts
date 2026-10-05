@@ -1,24 +1,15 @@
 export interface AccessibilityState {
   fontSizeDelta: number // -2, -1, 0, +1, +2, +3, +4, +5, +6
-  lineHeightDelta: number // 0, +1, +2, +3, +4, +5
-  letterSpacingDelta: number // 0, +1, +2, +3, +4, +5
   altoContraste: boolean
   invertirColores: boolean
   escalaGrises: boolean
   modoClaro: boolean
   resaltarEnlaces: boolean
-  resaltarTitulos: boolean
   fuenteLegible: boolean
   fuenteDislexia: boolean
-  ocultarImagenes: boolean
   sinAnimaciones: boolean
-  cursorGrande: boolean
   guiaLectura: boolean
-  focoDestacado: boolean
-  ocultarHastaTimestamp: number // Para ocultar 1h, 8h, 24h
   ttsHabilitado: boolean
-  ttsVelocidad: number // 0.8, 1.0, 1.3
-  ttsLecturaAutomatica: boolean
   flashVisual: boolean
 }
 
@@ -26,25 +17,16 @@ const STORAGE_KEY = 'yoso_accessibility_v4'
 
 const DEFAULT_STATE: AccessibilityState = {
   fontSizeDelta: 0,
-  lineHeightDelta: 0,
-  letterSpacingDelta: 0,
   altoContraste: false,
   invertirColores: false,
   escalaGrises: false,
   modoClaro: false,
   resaltarEnlaces: false,
-  resaltarTitulos: false,
   fuenteLegible: false,
   fuenteDislexia: false,
-  ocultarImagenes: false,
   sinAnimaciones: false,
-  cursorGrande: false,
   guiaLectura: false,
-  focoDestacado: true,
-  ocultarHastaTimestamp: 0,
   ttsHabilitado: true,
-  ttsVelocidad: 1.0,
-  ttsLecturaAutomatica: true,
   flashVisual: true,
 }
 
@@ -57,6 +39,8 @@ export class AccessibilityService {
 
   private constructor() {
     this.state = this.cargarState()
+    // Foco visible destacado (MinTIC CC17) — permanente, no existe toggle en UI.
+    document.documentElement.classList.add('a11y-focus-visible')
     this.aplicarClasesDOM()
     this.inicializarEventosGlobales()
   }
@@ -78,22 +62,10 @@ export class AccessibilityService {
     this.aplicarClasesDOM()
   }
 
-  // Ajustes incrementales de texto (WCAG / MinTIC CC4: pasos de 10% hasta 200%)
+  // Ajuste incremental de texto (WCAG / MinTIC CC4: pasos de 10% hasta 200%)
   ajustarFontSize(delta: number): number {
     const val = Math.max(-2, Math.min(10, this.state.fontSizeDelta + delta))
     this.actualizar({ fontSizeDelta: val })
-    return val
-  }
-
-  ajustarLineHeight(delta: number): number {
-    const val = Math.max(0, Math.min(5, this.state.lineHeightDelta + delta))
-    this.actualizar({ lineHeightDelta: val })
-    return val
-  }
-
-  ajustarLetterSpacing(delta: number): number {
-    const val = Math.max(0, Math.min(5, this.state.letterSpacingDelta + delta))
-    this.actualizar({ letterSpacingDelta: val })
     return val
   }
 
@@ -128,12 +100,6 @@ export class AccessibilityService {
     return val
   }
 
-  toggleResaltarTitulos(): boolean {
-    const val = !this.state.resaltarTitulos
-    this.actualizar({ resaltarTitulos: val })
-    return val
-  }
-
   toggleFuenteLegible(): boolean {
     const val = !this.state.fuenteLegible
     this.actualizar({ fuenteLegible: val, fuenteDislexia: false })
@@ -147,21 +113,9 @@ export class AccessibilityService {
   }
 
   // Toggles de Elementos de Página y Ayudas
-  toggleOcultarImagenes(): boolean {
-    const val = !this.state.ocultarImagenes
-    this.actualizar({ ocultarImagenes: val })
-    return val
-  }
-
   toggleSinAnimaciones(): boolean {
     const val = !this.state.sinAnimaciones
     this.actualizar({ sinAnimaciones: val })
-    return val
-  }
-
-  toggleCursorGrande(): boolean {
-    const val = !this.state.cursorGrande
-    this.actualizar({ cursorGrande: val })
     return val
   }
 
@@ -172,13 +126,7 @@ export class AccessibilityService {
     return val
   }
 
-  toggleFocoDestacado(): boolean {
-    const val = !this.state.focoDestacado
-    this.actualizar({ focoDestacado: val })
-    return val
-  }
-
-  // Toggles de TTS y Audio / Visual
+  // Toggle de TTS
   toggleTTS(): boolean {
     const val = !this.state.ttsHabilitado
     this.actualizar({ ttsHabilitado: val })
@@ -188,39 +136,14 @@ export class AccessibilityService {
     return val
   }
 
-  setTTSVelocidad(velocidad: number): void {
-    this.actualizar({ ttsVelocidad: velocidad })
-  }
-
-  toggleTTSLecturaAutomatica(): boolean {
-    const val = !this.state.ttsLecturaAutomatica
-    this.actualizar({ ttsLecturaAutomatica: val })
-    return val
-  }
-
   toggleFlashVisual(): boolean {
     const val = !this.state.flashVisual
     this.actualizar({ flashVisual: val })
     return val
   }
 
-  // Ocultar Widget por tiempo
-  ocultarWidgetPorHoras(horas: number): void {
-    const hasta = Date.now() + horas * 60 * 60 * 1000
-    this.actualizar({ ocultarHastaTimestamp: hasta })
-  }
-
-  estaWidgetOculto(): boolean {
-    if (!this.state.ocultarHastaTimestamp) return false
-    return Date.now() < this.state.ocultarHastaTimestamp
-  }
-
-  mostrarWidget(): void {
-    this.actualizar({ ocultarHastaTimestamp: 0 })
-  }
-
   restablecerTodo(): void {
-    this.state = { ...DEFAULT_STATE, ocultarHastaTimestamp: this.state.ocultarHastaTimestamp }
+    this.state = { ...DEFAULT_STATE }
     this.guardarState()
     this.aplicarClasesDOM()
     this.actualizarGuiaLecturaDOM()
@@ -251,14 +174,11 @@ export class AccessibilityService {
     const root = document.documentElement
     const body = document.body
 
-    // 1. Tamaño de fuente (escala accesible MinTIC CC4: pasos de 10% de 80% a 200%)
+    // 1. Tamaño de fuente (escala accesible MinTIC CC4: pasos de 10% de 80% a 200%).
+    //    line-height y letter-spacing tienen valores por defecto en accessibility.css
+    //    (--a11y-line-height: 1.4; --a11y-letter-spacing: 0em) y no varían.
     const baseScale = Math.max(0.80, Math.min(2.0, 1.0 + (this.state.fontSizeDelta * 0.10)))
-    const lineHeightVal = 1.4 + (this.state.lineHeightDelta * 0.15)
-    const letterSpacingVal = `${this.state.letterSpacingDelta * 0.05}em`
-
     root.style.setProperty('--a11y-scale', `${baseScale.toFixed(2)}`)
-    root.style.setProperty('--a11y-line-height', `${lineHeightVal}`)
-    root.style.setProperty('--a11y-letter-spacing', letterSpacingVal)
 
     // 2. Alto contraste
     root.classList.toggle('a11y-high-contrast', this.state.altoContraste)
@@ -277,24 +197,12 @@ export class AccessibilityService {
     // 6. Resaltar enlaces
     root.classList.toggle('a11y-highlight-links', this.state.resaltarEnlaces)
 
-    // 7. Resaltar títulos
-    root.classList.toggle('a11y-highlight-headings', this.state.resaltarTitulos)
-
-    // 8. Fuente legible / dislexia
+    // 7. Fuente legible / dislexia
     root.classList.toggle('a11y-readable-font', this.state.fuenteLegible)
     root.classList.toggle('a11y-dyslexia-font', this.state.fuenteDislexia)
 
-    // 9. Ocultar imágenes
-    root.classList.toggle('a11y-hide-images', this.state.ocultarImagenes)
-
-    // 10. Sin animaciones (reducir movimiento)
+    // 8. Sin animaciones (reducir movimiento)
     root.classList.toggle('a11y-no-animations', this.state.sinAnimaciones)
-
-    // 11. Cursor grande
-    root.classList.toggle('a11y-big-cursor', this.state.cursorGrande)
-
-    // 12. Foco destacado (MinTIC CC17)
-    root.classList.toggle('a11y-focus-visible', this.state.focoDestacado)
   }
 
   private inicializarEventosGlobales(): void {
@@ -348,7 +256,7 @@ export class AccessibilityService {
     window.speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(limpio)
     u.lang = 'es-CO'
-    u.rate = this.state.ttsVelocidad
+    u.rate = 1.0
     u.pitch = 1.0
 
     // Intentar seleccionar voz en español
@@ -369,20 +277,20 @@ export class AccessibilityService {
     if (this.state.flashVisual) {
       this.dispararFlashVisual()
     }
-    if (this.state.ttsHabilitado && this.state.ttsLecturaAutomatica && 'speechSynthesis' in window) {
+    if (this.state.ttsHabilitado && 'speechSynthesis' in window) {
       const u = new SpeechSynthesisUtterance(letra)
       u.lang = 'es-CO'
-      u.rate = this.state.ttsVelocidad
+      u.rate = 1.0
       window.speechSynthesis.cancel()
       window.speechSynthesis.speak(u)
     }
   }
 
   notificarPalabra(palabra: string): void {
-    if (this.state.ttsHabilitado && this.state.ttsLecturaAutomatica && 'speechSynthesis' in window && palabra.trim()) {
+    if (this.state.ttsHabilitado && 'speechSynthesis' in window && palabra.trim()) {
       const u = new SpeechSynthesisUtterance(palabra.trim())
       u.lang = 'es-CO'
-      u.rate = this.state.ttsVelocidad
+      u.rate = 1.0
       window.speechSynthesis.cancel()
       window.speechSynthesis.speak(u)
     }

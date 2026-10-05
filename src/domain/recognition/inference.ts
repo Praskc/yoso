@@ -104,16 +104,12 @@ export class MotorInferencia {
     try {
       const esCamaraIzquierda = lateralidad.label === 'Left'
 
-      const t0Proc   = performance.now()
       const entrada  = this._preprocesar(puntos, esCamaraIzquierda)
       if (entrada === null) return  // mano ocluida o dp ≈ 0 — descartar frame
 
       // Tensor + feed reutilizados. _procesando garantiza no-mutation durante run.
       // bufFeatures (== entrada) ya está poblado por _preprocesar y es el backing del tensor.
-      void entrada
-      const t0Inf         = performance.now()
-      const salida        = await this.sesion.run(this._inputFeed)
-      const latInferencia = performance.now() - t0Inf
+      const salida = await this.sesion.run(this._inputFeed)
 
       const datos = salida[this._outputName].data as Float32Array
       const { probs, indicePico, probPico } = this._softmax(datos)
@@ -124,7 +120,6 @@ export class MotorInferencia {
       const indiceLetraFinal = ALFABETO.indexOf(letra)
 
       const { confianzaEfectiva, distancia, distRef } = this._filtroZonaGris(indiceLetraFinal, entrada, probPico)
-      const latProcesamiento = performance.now() - t0Proc
 
       let letraDetectada = confianzaEfectiva >= UMBRAL_CONFIANZA ? letra : '-'
       if ((letraDetectada === ' ' || letraDetectada === BORRAR) && jitter > 0.02) letraDetectada = '-'
@@ -163,12 +158,9 @@ export class MotorInferencia {
         this._pesoPorLetra[idxL] = acumulado
         if (acumulado > pesoCandidato) { pesoCandidato = acumulado; idxCandidato = idxL }
       }
-      const bufferLleno    = this._votosLleno
-      const bufferProgreso = bufferLleno
-        ? Math.min(pesoCandidato / PESO_MINIMO_VOTOS, 1.0)
-        : 0
+      const bufferLleno = this._votosLleno
 
-      this.cb.alDetectarLetra(letraDetectada, confianzaEfectiva, latInferencia, latProcesamiento, esCamaraIzquierda)
+      this.cb.alDetectarLetra(letraDetectada, confianzaEfectiva, esCamaraIzquierda)
 
       // Proyectar índices → strings sólo para el callback de debug.
       // Orden cronológico desde head (más antiguo cuando lleno) hasta head-1 (más reciente).
@@ -183,8 +175,7 @@ export class MotorInferencia {
         probRed: probPico, confEfectiva: confianzaEfectiva,
         distancia, distRef,
         bufferActual: this._bufLetras,
-        topN:         this._top3Buf,
-        bufferProgreso
+        topN:         this._top3Buf
       } satisfies CargaDebug)
 
       if (!bufferLleno) return

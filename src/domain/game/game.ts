@@ -147,7 +147,7 @@ export class GameManager {
       : this._letraIncorrecta(letra)
   }
 
-  public getLetraEsperada(): string {
+  private getLetraEsperada(): string {
     if (!this.palabraActual || this.letraIdx >= this.palabraActual.length) return ''
     return this.palabraActual[this.letraIdx]
   }

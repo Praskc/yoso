@@ -8,7 +8,6 @@ export class AccessibilityModal {
   constructor() {
     this.createWidget()
     this.bindEvents()
-    this.checkWidgetVisibility()
   }
 
   private createWidget(): void {
@@ -245,11 +244,6 @@ export class AccessibilityModal {
       const target = e.target as HTMLElement | null
       if (!target) return
 
-      // Si el clic ocurrió sobre algún disparador de accesibilidad, no cerrar
-      if (target.closest('[data-a11y-trigger], [data-action="a11y"]')) {
-        return
-      }
-
       if (this.isOpen && this.panelEl && !this.panelEl.contains(target) && !this.floatTriggerEl?.contains(target)) {
         this.close()
       }
@@ -261,8 +255,6 @@ export class AccessibilityModal {
     })
 
     window.addEventListener('yoso:a11y:toggle', () => this.toggle())
-    window.addEventListener('yoso:a11y:open', () => this.open())
-    window.addEventListener('yoso:a11y:close', () => this.close())
     window.addEventListener('yoso:a11y:read-text', () => this.leerTranscripcionActual())
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) this.close()
@@ -405,16 +397,6 @@ export class AccessibilityModal {
     this.floatTriggerEl?.classList.remove('is-active')
     this.floatTriggerEl?.setAttribute('aria-expanded', 'false')
     this.isOpen = false
-  }
-
-  private checkWidgetVisibility(): void {
-    if (this.floatTriggerEl) {
-      if (a11y.estaWidgetOculto()) {
-        this.floatTriggerEl.style.display = 'none'
-      } else {
-        this.floatTriggerEl.style.display = ''
-      }
-    }
   }
 
   private formatDelta(num: number): string {

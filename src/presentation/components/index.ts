@@ -21,7 +21,6 @@ export class RenderizadorUI {
   private readonly onboarding: Onboarding
   private readonly learn:      AlphabetLearn
   private readonly splash:     Splash
-  private readonly a11yModal:  AccessibilityModal
 
   constructor() {
     // PanelLeft y Output crean DOM antes que HUD, que bindea IDs en diferido.
@@ -35,7 +34,7 @@ export class RenderizadorUI {
     this.onboarding = new Onboarding()
     this.learn      = new AlphabetLearn()
     this.splash     = new Splash()
-    this.a11yModal  = new AccessibilityModal()
+    new AccessibilityModal()
 
     window.addEventListener('yoso:letra', (e) => {
       const detail = (e as CustomEvent<{ letra: string; borrar: boolean }>).detail
@@ -67,13 +66,8 @@ export class RenderizadorUI {
     this.panelLeft.setLive(false)
   }
   ocultarEstadoVacio(): void                                    { this.splash.ocultarEstadoVacio() }
-
-  estadoListo(estado: 'idle' | 'signing' | 'warning'): void {
-    this.hud.estadoListo(estado)
-    this.panelLeft.setLive(true)
-  }
-  actualizarPrediccion(letra: string, confianza: number, latencia: number, esIzquierda: boolean): void {
-    this.hud.actualizarPrediccion(letra, confianza, latencia, esIzquierda)
+  actualizarPrediccion(letra: string, confianza: number, esIzquierda: boolean): void {
+    this.hud.actualizarPrediccion(confianza)
     this.output.setLetra(letra)
     this.output.actualizarStream(confianza)
     this.output.setMano(esIzquierda, confianza >= 0.82 ? 'good' : 'jitter')
@@ -83,8 +77,7 @@ export class RenderizadorUI {
       this.output.setMensajeHumano('mantén la postura', 'warn')
     }
   }
-  estadoMano(estado: string, esOptimo: boolean): void {
-    this.hud.estadoMano(estado, esOptimo)
+  estadoMano(esOptimo: boolean): void {
     if (!esOptimo) {
       this.output.setMensajeHumano('mucha vibración — aquieta', 'warn')
       this.output.setManoEstadoActual('jitter')
@@ -129,7 +122,6 @@ export class RenderizadorUI {
   ocultarToast(id: string): void                                { this.toast.ocultar(id) }
 
   mostrarOnboarding(forzado = false): Promise<void>             { return this.onboarding.mostrar(forzado) }
-  mostrarAccesibilidad(): void                                  { this.a11yModal.open() }
 
   resaltarSena(letra: string): void                             { this.learn.resaltar(letra) }
   limpiarSena(): void                                           { this.learn.limpiar() }

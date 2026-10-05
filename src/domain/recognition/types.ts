@@ -21,7 +21,6 @@ export interface CargaDebug {
   distRef:        number | null
   bufferActual:   string[]
   topN:           ItemTop[]
-  bufferProgreso: number   // 0–1, maxPeso acumulado / PESO_MINIMO_VOTOS
 }
 
 export interface Centroide {
@@ -33,7 +32,7 @@ export type MapaCentroides = Record<string, Centroide>
 
 export interface CallbacksInferencia {
   alConfirmarLetra:    (letra: string) => void
-  alDetectarLetra:     (letra: string, confianza: number, latInferencia: number, latProcesamiento: number, esCamaraIzquierda: boolean) => void
+  alDetectarLetra:     (letra: string, confianza: number, esCamaraIzquierda: boolean) => void
   alActualizarDebug:   (carga: CargaDebug) => void
 }
 

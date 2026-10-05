@@ -388,16 +388,9 @@ export class OutputPanel {
     const cuenta = Math.min(votos, total)
     if (cuenta === this._prevCuenta) return
     this._prevCuenta = cuenta
-    const ratio = cuenta / total
-    const pct = Math.round(ratio * 100)
 
     if (this.progressCountEl) {
       this.progressCountEl.innerHTML = `${cuenta}<span class="denom">/${total} VOTOS</span>`
-    }
-
-    const laserFill = document.getElementById('def-laser-fill')
-    if (laserFill) {
-      laserFill.style.width = `${pct}%`
     }
 
     const bufferCard = document.getElementById('def-buffer-card')

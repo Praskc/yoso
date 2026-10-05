@@ -91,13 +91,6 @@ export class AlphabetLearn {
     this.seleccionarLetra(ALFABETO[this.letraIdx])
   }
 
-  saltarLetra(): void {
-    const pendientes = ALFABETO.filter(l => !this.vistas.has(l))
-    const pool = pendientes.length > 0 ? pendientes : ALFABETO.filter(l => l !== this.actual)
-    const random = pool[Math.floor(Math.random() * pool.length)] ?? ALFABETO[0]
-    this.seleccionarLetra(random)
-  }
-
   resaltar(letra: string): void {
     const l = letra ? letra.toUpperCase() : null
     if (!l) return

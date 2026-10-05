@@ -502,20 +502,7 @@ body {
   outline: 2px solid #FCD116 !important;
 }
 
-/* 7. Resaltar Títulos (MinTIC CC23) */
-.a11y-highlight-headings h1,
-.a11y-highlight-headings h2,
-.a11y-highlight-headings h3,
-.a11y-highlight-headings .topbar__title,
-.a11y-highlight-headings .def-sec-label,
-.a11y-highlight-headings .def-hero__title {
-  background: #FCD116 !important;
-  color: #000000 !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-}
-
-/* 8. Fuente Legible / Dislexia (MinTIC CC31) */
+/* 7. Fuente Legible / Dislexia (MinTIC CC31) */
 .a11y-readable-font * {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
 }
@@ -526,7 +513,7 @@ body {
   word-spacing: 0.1em !important;
 }
 
-/* 9. Guía de Lectura Visual */
+/* 8. Guía de Lectura Visual */
 .a11y-reading-guide {
   position: fixed;
   left: 0;
@@ -540,13 +527,13 @@ body {
   display: none;
 }
 
-/* 10. Sin Animaciones (MinTIC CC20) */
+/* 9. Sin Animaciones (MinTIC CC20) */
 .a11y-no-animations * {
   animation: none !important;
   transition: none !important;
 }
 
-/* 11. Flash Visual en Pantalla (Acierto de seña para usuarios sordos con auto-desvanecimiento seguro) */
+/* 10. Flash Visual en Pantalla (Acierto de seña para usuarios sordos con auto-desvanecimiento seguro) */
 .a11y-screen-flash {
   position: fixed;
   inset: 0;
