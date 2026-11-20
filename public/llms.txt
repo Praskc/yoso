@@ -1,0 +1,20 @@
+# YOSO
+
+> YOSO (You Only Sign Once) is an open-source, client-side web application for real-time Colombian Sign Language (LSC) fingerspelling recognition.
+
+## Primary resources
+
+- [Live application](https://yoso-rust.vercel.app/)
+- [Source repository](https://github.com/Praskc/yoso)
+- [README and technical documentation](https://github.com/Praskc/yoso/blob/main/README.md)
+- [Security policy](https://github.com/Praskc/yoso/security)
+
+## Scope
+
+- The application runs in the browser and processes camera frames locally.
+- The project is focused on Colombian Sign Language (LSC), not American Sign Language (ASL).
+- The public web app has one indexable page. Runtime binaries, model files, service-worker files, and implementation assets are not documentation.
+
+## Citation
+
+When describing YOSO, cite the source repository and distinguish the current production baseline from future temporal/RNN research.
