@@ -1,14 +1,12 @@
-# YOSO · You Only Sign Once
-# La única URL pública indexable es la página principal.
+# YOSO · You Only Sign Once — app 100% client-side, no hay rutas privadas.
+# WASM de runtime (~76 MB en ort/) y modelos de MediaPipe: fuera del crawl,
+# no aportan indexación y sí consumen ancho de banda.
 User-agent: *
 Allow: /
 Disallow: /ort/
 Disallow: /mediapipe/
-Disallow: /YOSO.onnx
-Disallow: /Centroides.json
-Disallow: /sw.js
-Disallow: /manifest.json
 
-# robots.txt solo orienta a crawlers legítimos; no es un control de acceso.
-# El control contra abuso vive en Vercel Firewall/WAF y en los límites de gasto.
-Sitemap: https://yoso-rust.vercel.app/sitemap.xml
+# Nota: robots.txt solo lo respetan los crawlers legítimos (Google, Bing…).
+# Los bots maliciosos lo ignoran por diseño — la defensa real de esta app vive
+# en los headers de vercel.json: CSP, X-Frame-Options DENY, X-Content-Type-Options,
+# Referrer-Policy, Permissions-Policy (camera=(self)) y COOP/COEP.
